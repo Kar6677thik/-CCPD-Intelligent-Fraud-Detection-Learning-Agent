@@ -100,19 +100,6 @@ CreditCard3/
 
 ---
 
-## 🎬 5-Minute Demo Script
-
-1. **[0:00]** Open dashboard → Show clean fintech UI, explain model status
-2. **[1:00]** Click "Train Models" → Show WebSocket training progress
-3. **[2:00]** Go to Detection → Upload `creditcard.csv` → Show predictions with fraud scores
-4. **[2:30]** Explore SHAP explanations → "V14 increases fraud risk"
-5. **[3:00]** Go to Model Comparison → Show radar chart, per-model metrics
-6. **[3:30]** Go to Transaction Explorer → Filter fraud-only, search by ID
-7. **[4:00]** Toggle Professor Mode → Show simplified business view
-8. **[4:30]** Show `output/` folder → Open metrics.json, confusion matrices, ROC curves
-9. **[5:00]** Explain adaptive learning → Feedback loop → Retrain → Compare improvement
-
----
 
 ## 🎨 Features
 
