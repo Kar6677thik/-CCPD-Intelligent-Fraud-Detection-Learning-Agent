@@ -3,10 +3,16 @@ __pycache__/
 *.py[cod]
 *$py.class
 *.so
+*.pyo
+*.pyd
 venv/
 env/
 .env
 .env.*
+*.egg
+*.egg-info/
+dist/
+build/
 
 # Python testing/coverage
 .pytest_cache/
@@ -14,17 +20,18 @@ env/
 .coverage
 htmlcov/
 .ipynb_checkpoints/
+.tox/
+.hypothesis/
 
-# SQLite Database
-fraud_detection.db
-fraud_detection.db-journal
-fraud_detection.db-shm
-fraud_detection.db-wal
+# Logs
+*.log
+*.log.*
+logs/
 
 # Data and Models
 *.csv
-!creditcard.csv
-!sample_creditcard.csv
+creditcard.csv
+sample_creditcard.csv
 datasets/
 models/*.pkl
 models/*.keras
@@ -41,9 +48,35 @@ frontend/.env.production.local
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+.pnpm-debug.log*
 
 # IDE / OS
 .vscode/
 .idea/
 .DS_Store
 Thumbs.db
+*.swp
+*.swo
+*~
+.sublime-project
+.sublime-workspace
+
+# Temporary files
+*.tmp
+*.temp
+*.cache
+.cache/
+tmp/
+temp/
+
+# SQLite Database
+fraud_detection.db
+fraud_detection.db-journal
+fraud_detection.db-shm
+fraud_detection.db-wal
+
+# System
+.env.local
+.env.*.local
+.pytest_cache
+*.pid
