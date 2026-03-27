@@ -1,0 +1,1575 @@
+Statistical Science
+2002, Vol. 17, No. 3, 235–255
+Statistical Fraud Detection: A Review
+Richard J. Bolton and David J. Hand
+Abstract. Fraud is increasing dramatically with the expansion of modern
+technology and the global superhighways of communication, resulting inthe loss of billions of dollars worldwide each year. Although preventiontechnologies are the best way to reduce fraud, fraudsters are adaptiveand, given time, will usually ﬁnd ways to circumvent such measures.
+Methodologies for the detection of fraud are essential if we are to catch
+fraudsters once fraud prevention has failed. Statistics and machine learningprovide effective technologies for fraud detection and have been appliedsuccessfully to detect activities such as money laundering, e-commerce creditcard fraud, telecommunications fraud and computer intrusion, to name but afew. We describe the tools available for statistical fraud detection and theareas in which fraud detection technologies are most used.
+Key words and phrases: Fraud detection, fraud prevention, statistics,
+machine learning, money laundering, computer intrusion, e-commerce, creditcards, telecommunications.
+1. INTRODUCTION
+The Concise Oxford Dictionary deﬁnes fraud as
+“criminal deception; the use of false representations togain an unjust advantage.” Fraud is as old as humanityitself and can take an unlimited variety of different
+forms. However, in recent years, the development of
+new technologies (which have made it easier for us tocommunicate and helped increase our spending power)has also provided yet further ways in which criminals
+may commit fraud. Traditional forms of fraudulent
+behavior such as money laundering have become easierto perpetrate and have been joined by new kinds offraud such as mobile telecommunications fraud and
+computer intrusion.
+We begin by distinguishing between fraud pre-
+vention and fraud detection. Fraud prevention de-
+scribes measures to stop fraud from occurring in the
+ﬁrst place. These include elaborate designs, ﬂuores-
+cent ﬁbers, multitone drawings, watermarks, laminatedmetal strips and holographs on banknotes, personal
+Richard J. Bolton is Research Associate in the Statistics
+Section of the Department of Mathematics at Imperial
+College. David J. Hand is Professor of Statistics inthe Department of Mathematics at Imperial College,London SW7 2BZ, United Kingdom (e-mail: r.bolton,d.j.hand@ic.ac.uk).identiﬁcation numbers for bankcards, Internet security
+systems for credit card transactions, Subscriber Iden-
+tity Module (SIM) cards for mobile phones, and pass-
+words on computer systems and telephone bank ac-counts. Of course, none of these methods is perfect
+and, in general, a compromise has to be struck between
+expense and inconvenience (e.g., to a customer) on theone hand, and effectiveness on the other.
+In contrast, fraud detection involves identifying fraud
+as quickly as possible once it has been perpetrated.Fraud detection comes into play once fraud preven-
+tion has failed. In practice, of course fraud detection
+must be used continuously, as one will typically be un-aware that fraud prevention has failed. We can try to
+prevent credit card fraud by guarding our cards assid-
+uously, but if nevertheless the card’s details are stolen,then we need to be able to detect, as soon as possible,
+that fraud is being perpetrated.
+Fraud detection is a continuously evolving disci-
+pline. Whenever it becomes known that one detection
+method is in place, criminals will adapt their strate-
+gies and try others. Of course, new criminals are alsoconstantly entering the ﬁeld. Many of them will not be
+aware of the fraud detection methods which have been
+successful in the past and will adopt strategies which
+lead to identiﬁable frauds. This means that the earlier
+detection tools need to be applied as well as the latestdevelopments.
+235
+
+236 R. J. BOLTON AND D. J. HAND
+The development of new fraud detection methods
+is made more difﬁcult by the fact that the exchangeof ideas in fraud detection is severely limited. It does
+not make sense to describe fraud detection techniques
+in great detail in the public domain, as this gives
+criminals the information that they require to evade
+detection. Data sets are not made available and resultsare often censored, making them difﬁcult to assess
+(e.g., Leonard, 1993).
+Many fraud detection problems involve huge data
+sets that are constantly evolving. For example, the
+credit card company Barclaycard carries approximately350 million transactions a year in the United King-
+dom alone (Hand, Blunt, Kelly and Adams, 2000),
+The Royal Bank of Scotland, which has the largest
+credit card merchant acquiring business in Europe,
+carries over a billion transactions a year and AT&Tcarries around 275 million calls each weekday (Cortes
+and Pregibon, 1998). Processing these data sets in
+a search for fraudulent transactions or calls requires
+more than mere novelty of statistical model, and
+also needs fast and efﬁcient algorithms: data mining
+techniques are relevant. These numbers also indicate
+the potential value of fraud detection: if 0.1% of a100 million transactions are fraudulent, each losing
+the company just £10, then overall the company loses
+£1 million.
+Statistical tools for fraud detection are many and
+varied, since data from different applications can bediverse in both size and type, but there are common
+themes. Such tools are essentially based on comparing
+the observed data with expected values, but expected
+values can be derived in various ways, depending on
+the context. They may be single numerical summariesof some aspect of behavior and they are often simple
+graphical summaries in which an anomaly is readily
+apparent, but they are also often more complex (multi-
+variate) behavior proﬁles. Such behavior proﬁles may
+be based on past behavior of the system being studied(e.g., the way a bank account has been previously used)
+or be extrapolated from other similar systems. Things
+are often further complicated by the fact that, in some
+domains (e.g., trading on the stock market) a given ac-
+tor may behave in a fraudulent manner some of the timeand not at other times.
+Statistical fraud detection methods may be super-
+vised orunsupervised . In supervised methods, samples
+of both fraudulent and nonfraudulent records are used
+to construct models which allow one to assign new ob-servations into one of the two classes. Of course, this
+requires one to be conﬁdent about the true classes ofthe original data used to build the models. It also re-
+quires that one has examples of both classes. Further-more, it can only be used to detect frauds of a type
+which have previously occurred.
+In contrast, unsupervised methods simply seek those
+accounts, customers and so forth which are most
+dissimilar from the norm. These can then be examinedmore closely. Outliers are a basic form of nonstandard
+observation. Tools used for checking data quality can
+be used, but the detection of accidental errors is a rather
+different problem from the detection of deliberately
+falsiﬁed data or data which accurately describe afraudulent pattern.
+This leads us to note the fundamental point that we
+can seldom be certain, by statistical analysis alone,
+that a fraud has been perpetrated. Rather, the analysis
+should be regarded as alerting us to the fact that an ob-servation is anomalous, or more likely to be fraudulent
+than others, so that it can then be investigated in more
+detail. One can think of the objective of the statisti-
+cal analysis as being to return a suspicion score (where
+we will regard a higher score as more suspicious than
+a lower one). The higher the score is, then the more
+unusual is the observation or the more like previouslyfraudulent values it is. The fact that there are many
+different ways in which fraud can be perpetrated and
+many different scenarios in which it can occur means
+that there are many different ways to compute suspi-
+cion scores.
+Suspicion scores can be computed for each record in
+the database (for each customer with a bank account or
+credit card, for each owner of a mobile phone, for each
+desktop computer and so on), and these can be updated
+as time progresses. These scores can then be rankordered and investigative attention can be focussed on
+those with the highest scores or on those which exhibit
+a sudden increase. Here issues of cost enter: given that
+it is too expensive to undertake a detailed investigation
+of all records, one concentrates investigation on thosethought most likely to be fraudulent.
+One of the difﬁculties with fraud detection is that
+typically there are many legitimate records for each
+fraudulent one. A detection method which correctly
+identiﬁes 99% of the legitimate records as legitimateand 99% of the fraudulent records as fraudulent might
+be regarded as a highly effective system. However, if
+only 1 in 1000 records is fraudulent, then, on average,
+in every 100 that the system ﬂags as fraudulent, only
+about 9 will in fact be so. In particular, this meansthat to identify those 9 requires detailed examination of
+all 100—at possibly considerable cost. This leads us to
+
+STATISTICAL FRAUD DETECTION 237
+a more general point: fraud can be reduced to as low a
+level as one likes, but only by virtue of a correspondinglevel of effort and cost. In practice, some compromise
+has to be reached, often a commercial compromise,
+between the cost of detecting a fraud and the savingsto be made by detecting it. Sometimes the issues arecomplicated by, for example, the adverse publicity
+accompanying fraud detection. At a business level,
+revealing that a bank is a signiﬁcant target for fraud,even if much has been detected, does little to inspire
+conﬁdence, and at a personal level, taking action which
+implies to an innocent customer that they may besuspected of fraud is obviously detrimental to good
+customer relations.
+The body of this paper is structured according to
+different areas of fraud detection. Clearly we cannot
+hope to cover all areas in which statistical methods can
+be applied. Instead, we have selected a few areas wheresuch methods are used and where there is a body of
+expertise and of literature describing them. However,
+before looking at the details of different applicationareas, Section 2 provides a brief overview of sometools for fraud detection.
+2. FRAUD DETECTION TOOLS
+As we mentioned above, fraud detection can be su-
+pervised or unsupervised. Supervised methods use a
+database of known fraudulent/legitimate cases from
+which to construct a model which yields a suspicionscore for new cases. Traditional statistical classiﬁca-
+tion methods (Hand, 1981; McLachlan, 1992), such
+as linear discriminant analysis and logistic discrimina-tion, have proved to be effective tools for many appli-
+cations, but more powerful tools (Ripley, 1996; Hand,
+1997; Webb, 1999), especially neural networks, havealso been extensively applied. Rule-based methods aresupervised learning algorithms that produce classiﬁers
+using rules of the form If{certain conditions}, Then
+{a consequent}. Examples of such algorithms includeBAYES (Clark and Niblett, 1989), FOIL (Quinlan,
+1990) and RIPPER (Cohen, 1995). Tree-based algo-
+rithms such as CART (Breiman, Friedman, Olshen andStone, 1984) and C4.5 (Quinlan, 1993) produce classi-
+ﬁers of a similar form. Combinations of some or all of
+these algorithms can be created using meta-learning al-gorithms to improve prediction in fraud detection (e.g.,
+Chan, Fan, Prodromidis and Stolfo, 1999).
+Major considerations when building a supervised
+tool for fraud detection include those of uneven classsizes and different costs of different types of misclas-
+siﬁcation. We must also take into consideration thecosts of investigating observations and the beneﬁts of
+identifying fraud. Moreover, often class membershipis uncertain. For example, credit transactions may be
+labelled incorrectly: a fraudulent transaction may re-
+main unobserved and thus be labeled legitimate (and
+the extent of this may remain unknown) or a legit-
+imate transaction may be misreported as fraudulent.Some work has addressed misclassiﬁcation of training
+samples (e.g., Lachenbruch, 1966, 1974; Chhikara and
+McKeon, 1984), but not in the context of fraud detec-
+tion as far as we are aware. Issues such as these were
+discussed by Chan and Stolfo (1998) and Provost andFawcett (2001).
+Link analysis relates known fraudsters to other
+individuals using record linkage and social network
+methods (Wasserman and Faust, 1994). For example,
+in telecommunications networks, security investigatorshave found that fraudsters seldom work in isolation
+from each other. Also, after an account has been
+disconnected for fraud, the fraudster will often call the
+same numbers from another account (Cortes, Pregibon
+and V olinsky, 2001). Telephone calls from an account
+can thus be linked to fraudulent accounts to indicate
+intrusion. A similar approach has been taken in moneylaundering (Goldberg and Senator, 1995, 1998; Senator
+et al., 1995).
+Unsupervised methods are used when there are no
+prior sets of legitimate and fraudulent observations.
+Techniques employed here are usually a combinationof proﬁling and outlier detection methods. We model
+a baseline distribution that represents normal behav-
+ior and then attempt to detect observations that show
+the greatest departure from this norm. There are sim-
+ilarities to author identiﬁcation in text analysis. Digitanalysis using Benford’s law is an example of such a
+method. Benford’s law (Hill, 1995) says that the distri-
+bution of the ﬁrst signiﬁcant digits of numbers drawn
+from a wide variety of random distributions will have
+(asymptotically) a certain form. Until recently, this lawwas regarded as merely a mathematical curiosity with
+no apparent useful application. However, Nigrini and
+Mittermaier (1997) and Nigrini (1999) showed that
+Benford’s law can be used to detect fraud in accounting
+data. The premise behind fraud detection using toolssuch as Benford’s law is that fabricating data which
+conform to Benford’s law is difﬁcult.
+Fraudsters adapt to new prevention and detection
+measures, so fraud detection needs to be adaptive and
+evolve over time. However, legitimate account usersmay gradually change their behavior over a longer
+period of time and it is important to avoid spurious
+
+238 R. J. BOLTON AND D. J. HAND
+alarms. Models can be updated at ﬁxed time points or
+continuously over time; see, for example, Burge andShawe-Taylor (1997), Fawcett and Provost (1997a),
+Cortes, Pregibon and V olinsky (2001) and Senator
+(2000).
+Although the basic statistical models for fraud detec-
+tion can be categorized as supervised or unsupervised,the application areas of fraud detection cannot be de-
+scribed so conveniently. Their diversity is reﬂected in
+their particular operational characteristics and the va-
+riety and quantity of data available, both features that
+drive the choice of a suitable fraud detection tool.
+3. CREDIT CARD FRAUD
+The extent of credit card fraud is difﬁcult to quan-
+tify, partly because companies are often loath to re-lease fraud ﬁgures in case they frighten the spending
+public and partly because the ﬁgures change (prob-
+ably grow) over time. Various estimates have been
+given. For example, Leonard (1993) suggested the cost
+of Visa/Mastercard fraud in Canada in 1989, 1990and 1991 was $19, 29 and 46 million (Canadian), re-
+spectively. Ghosh and Reilly (1994) suggested a ﬁg-
+ure of $850 million (U.S.) per year for all types of
+credit card fraud in the United States, and Aleskerov,
+Freisleben and Rao (1997) cited estimates of $700 mil-
+lion in the United States each year for Visa/Mastercard
+and $10 billion worldwide in 1996. Microsoft’s Expe-dia set aside $6 million for credit card fraud in 1999
+(Patient, 2000). Total losses through credit card fraud
+in the United Kingdom have been growing rapidly over
+the last 4 years [1997, £122 million; 1998, £135 mil-
+lion; 1999, £188 million; 2000, £293 million. Source :
+Association for Payment Clearing Services, London
+(APACS)] and recently APACS reported £373.7 mil-
+lion losses in the 12 months ending August 2001.
+Jenkins (2000) says “for every £100 you spend on a
+card in the UK, 13p is lost to fraudsters.” Matters arecomplicated by issues of exactly what one includes in
+the fraud ﬁgures. For example, bankruptcy fraud arises
+when the cardholder makes purchases for which he/she
+has no intention of paying and then ﬁles for personal
+bankruptcy, leaving the bank to cover the losses. Sincethese are generally regarded as charge-off losses, they
+often are not included in fraud ﬁgures. However, they
+can be substantial: Ghosh and Reilly (1994) cited one
+estimate of $2.65 billion for bankruptcy fraud in 1992.
+It is in a company and card issuer’s interests to
+prevent fraud or, failing this, to detect fraud as soon
+as possible. Otherwise consumer trust in both the cardand the company decreases and revenue is lost, in
+addition to the direct losses made through fraudulentsales. Because of the potential for loss of sales due to
+loss of conﬁdence, in general, the merchants assume
+responsibility for fraud losses, even when the vendor
+has obtained authorization from the card issuer.
+Credit card fraud may be perpetrated in various ways
+(a description of the credit card industry and how it
+functions is given in Blunt and Hand, 2000), including
+simple theft, application fraud and counterfeit cards.
+In all of these, the fraudster uses a physical card, but
+physical possession is not essential to perpetrate creditcard fraud: one of the major fraud areas is “cardholder-
+not-present” fraud, where only the card’s details are
+given (e.g., over the phone).
+Use of a stolen card is perhaps the most straightfor-
+ward type of credit card fraud. In this case, the fraud-ster typically spends as much as possible in as short a
+space of time as possible, before the theft is detected
+and the card is stopped; hence, detecting the theft early
+can prevent large losses.
+Application fraud arises when individuals obtain
+new credit cards from issuing companies using false
+personal information. Traditional credit scorecards(Hand and Henley, 1997) are used to detect customers
+who are likely to default, and the reasons for this may
+include fraud. Such scorecards are based on the de-
+tails given on the application forms and perhaps also
+on other details such as bureau information. Statisticalmodels which monitor behavior over time can be used
+to detect cards which have been obtained from a fraud-
+ulent application (e.g., a ﬁrst time card holder who runs
+out and rapidly makes many purchases should arouse
+suspicion). With application fraud, however, urgencyis not as important to the fraudster and it might not be
+until accounts are sent out or repayment dates begin to
+pass that fraud is suspected.
+Cardholder-not-present fraud occurs when the trans-
+action is made remotely, so that only the card’s detailsare needed, and a manual signature and card imprint
+are not required at the time of purchase. Such transac-
+tions include telephone sales and on-line transactions,
+and this type of fraud accounts for a high proportion of
+losses. To undertake such fraud it is necessary to obtainthe details of the card without the cardholder’s knowl-
+edge. This is done in various ways, including “skim-
+ming,” where employees illegally copy the magnetic
+strip on a credit card by swiping it through a small
+handheld card reader, “shoulder surfers,” who entercard details into a mobile phone while standing be-
+hind a purchaser in a queue, and people posing as credit
+
+STATISTICAL FRAUD DETECTION 239
+card company employees taking details of credit card
+transactions from companies over the phone. Counter-
+feit cards, currently the largest source of credit card
+fraud in the United Kingdom ( source : APACS), can
+also be created using this information. Transactions
+made by fraudsters using counterfeit cards and mak-
+ing cardholder-not-present purchases can be detected
+through methods which seek changes in transaction
+patterns, as well as checking for particular patterns
+which are known to be indicative of counterfeiting.
+Credit card databases contain information on each
+transaction. This information includes such things as
+merchant code, account number, type of credit card,
+type of purchase, client name, size of transaction and
+date of transaction. Some of these data are numerical
+(e.g., transaction size) and others are nominal categor-
+ical (e.g., merchant code, which can have hundreds of
+thousands of categories) or symbolic. The mixed data
+types have led to the application of a wide variety of
+statistical, machine learning and data mining tools.
+Suspicion scores to detect whether an account has
+been compromised can be based on models of individ-
+ual customers’ previous usage patterns, standard ex-
+pected usage patterns, particular patterns which are
+known to be often associated with fraud, and on su-
+pervised models. A simple example of the patterns ex-
+hibited by individual customers is given in Figure 16 of
+Hand and Blunt (2001), which shows how the slopes of
+cumulative credit card spending over time are remark-ably linear. Sudden jumps in these curves or sudden
+changes of slope (transaction or expenditure rate sud-
+denly exceeding some threshold) merit investigation.
+Likewise, some customers practice “jam jarring”—
+restricting particular cards to particular types of pur-
+chases (e.g., using a given card for petrol purchases
+only and a different one for supermarket purchases),
+so that usage of a card to make an unusual type of pur-
+chase can trigger an alarm for such customers. At a
+more general level, suspicion scores can also be based
+on expected overall usage proﬁles. For example, ﬁrst
+time credit card users are typically initially fairly ten-
+tative in their usage, whereas those transferring loans
+from another card are generally not so reticent. Fi-
+nally, examples of overall transaction patterns known
+to be intrinsically suspicious are the sudden purchase
+of many small electrical items or jewelry (goods which
+permit easy black market resale) and the immediate use
+of a new card in a wide range of different locations.
+We commented above that, for obvious reasons,
+there is a dearth of published literature on fraud de-
+tection. Much of that which has been published ap-
+pears in the methodological data analytic literature,where the aim is to illustrate new data analytic tools by
+applying them to the detection of fraud, rather thanto describe methods of fraud detection per se. Fur-
+thermore, since anomaly detection methods are very
+context dependent, much of the published literature
+in the area concentrates on supervised classiﬁcation
+methods. In particular, rule-based systems and neuralnetworks have attracted interest. Researchers who have
+used neural networks for credit card fraud detection
+include Ghosh and Reilly (1994), Aleskerov et al.
+(1997), Dorronsoro, Ginel, Sanchez and Cruz (1997)
+and Brause, Langsdorf and Hepp (1999), mainly in thecontext of supervised classiﬁcation. HNC Software has
+developed Falcon , a software package that relies heav-
+ily on neural network technology to detect credit card
+fraud.
+Supervised methods, using samples from the fraud-
+ulent/nonfraudulent classes as the basis to construct
+classiﬁcation rules to detect future cases of fraud, suf-
+fer from the problem of unbalanced class sizes men-
+tioned above: the legitimate transactions generally far
+outnumber the fraudulent ones. Brause, Langsdorf and
+Hepp (1999) said that, in their database of credit
+card transactions, “the probability of fraud is verylow (0.2%) and has been lowered in a preprocessing
+step by a conventional fraud detecting system down
+to 0.1%.” Hassibi (2000) remarked that “out of some
+12 billion transactions made annually, approximately
+10 million—or one out of every 1200 transactions—turn out to be fraudulent. Also, 0.04% (4 out of every
+10,000) of all monthly active accounts are fraudulent.”
+It follows from this sort of ﬁgure that simple mis-
+classiﬁcation rate cannot be used as a performance
+measure: with a bad rate of 0.1%, simply classifyingevery transaction as legitimate will yield an error rate
+of only 0.001. Instead, one must either minimize an
+appropriate cost-weighted loss or ﬁx some parameter
+(such as the number of cases one can afford to investi-
+gate in detail) and then try to maximize the number offraudulent cases detected subject to the constraints.
+Stolfo et al. (1997a, b) outlined a meta-classiﬁer
+system for detecting credit card fraud that is based
+on the idea of using different local fraud detection
+tools within each different corporate environment andmerging the results to yield a more accurate global
+tool. This work was elaborated in Chan and Stolfo
+(1998), Chan, Fan, Prodromidis and Stolfo (1999) and
+Stolfo et al. (1999), who described a more realistic
+cost model to accompany the different classiﬁcationoutcomes. Wheeler and Aitken (2000) also explored
+the combination of multiple classiﬁcation rules.
+
+240 R. J. BOLTON AND D. J. HAND
+4. MONEY LAUNDERING
+Money laundering is the process of obscuring the
+source, ownership or use of funds, usually cash, thatare the proﬁts of illicit activity. The size of the problem
+is indicated in a 1995 U.S. Ofﬁce of Technology As-
+sessment (OTA) report (U.S. Congress, 1995): “Fed-eral agencies estimate that as much as $300 billion is
+laundered annually, worldwide. From $40 billion to
+$80 billion of this may be drug proﬁts made in theUnited States.” Prevention is attempted by means of le-
+gal constraints and requirements—the burden of which
+is gradually increasing—and there has been much de-bate recently about the use of encryption. However, no
+prevention strategy is foolproof and detection is essen-
+tial. In particular, the September 11th terrorist attackson New York City and the Pentagon have focused at-
+tention on the detection of money laundering in an
+attempt to starve terrorist networks of funds.
+Wire transfers provide a natural domain for launder-
+ing: according to the OTA report, each day in 1995
+about half a million wire transfers, valued at more than$2 trillion (U.S.), were carried out using the Fedwire
+and CHIPS systems, along with almost a quarter of a
+million transfers using the SWIFT system. It is esti-mated that around 0.05–0.1% of these transactions in-
+volved laundering. Sophisticated statistical and other
+on-line data analytic procedures are needed to detectsuch laundering activity. Since it is now becoming a le-
+gal requirement to show that all reasonable means have
+been used to detect fraud, we may expect to see evengreater application of such tools.
+Wire transfers contain items such as date of transfer,
+identity of sender, routing number of originating bank,identity of recipient, routing number of recipient bank
+and amount transferred. Sometimes those ﬁelds not
+needed for transfer are left blank, free text ﬁelds maybe completed in different ways and, worse still, but
+inevitable, sometimes the data have errors. Automatic
+error detection (and correction) software has beendeveloped, based on semantic and syntactic constraints
+on possible content, but, of course, this can never
+be a complete solution. Matters are also complicatedby the fact that banks do not share their data. Of
+course, banks are not the only bodies that transfer
+money electronically, and other businesses have beenestablished precisely for this purpose [the OTA report
+(U.S. Congress, 1995) estimates the number of such
+businesses as 200,000].
+The detection of money laundering presents difﬁcul-
+ties not encountered in areas such as, for example, thecredit card industry. Whereas credit card fraud comes
+to light fairly early on, in money laundering it may beyears before individual transfers or accounts are deﬁn-
+itively and legally identiﬁed as part of a laundering
+process. While, in principle (assuming records have
+been kept), one could go back and trace the relevant
+transactions, in practice not all of them would be iden-tiﬁed, so detracting from their use in supervised de-
+tection methods. Furthermore, there is typically less
+extensive information available for the account hold-
+ers in investment banks than there is in retail banking
+operations. Developing more detailed customer recordsystems might be a good way forward.
+As with other areas of fraud, money laundering
+detection works hand in hand with prevention. In 1970,
+for example, in the United States the Bank Secrecy
+Act required that banks report all currency transactionsof over $10,000 to the authorities. However, also
+as in other areas of fraud, the perpetrators adapt
+their modus operandi to match the changing tactics
+of the authorities. So, following the requirement of
+banks to report currency transactions of over $10,000,
+the obvious strategy was developed to divide larger
+sums into multiple amounts of less than $10,000 anddeposit them in different banks (a practice termed
+smurﬁng orstructuring ). In the United States, this is
+now illegal, but the way the money launderers adapt
+to the prevailing detection methods can lead one to
+the pessimistic perspective that only the incompetentmoney launderers are detected. This, clearly, also
+limits the value of supervised detection methods: the
+patterns detected will be those patterns which were
+characteristic of fraud in the past, but which may
+no longer be so. Other strategies used by moneylaunderers which limit the value of supervised methods
+include switching between wire and physical cash
+movements, the creation of shell businesses, false
+invoicing and, of course, the fact that a single transfer,
+in itself, is unlikely to appear to be a launderingtransaction. Furthermore, because of the large sums
+involved, money launderers are highly professional and
+often have contacts in the banks who can feed back
+details of the detection strategies being applied.
+The number of currency transactions over $10,000
+in value increased dramatically after the mid-1980s,
+to the extent that the number of reports ﬁled is huge
+(over 10 million in 1994, with total worth of around
+$500 billion), and this in itself can cause difﬁculties.
+In an attempt to cope with this, the Financial CrimesEnforcement Network (FinCEN) of the U.S. Depart-
+ment of the Treasury processes all such reports using
+
+STATISTICAL FRAUD DETECTION 241
+the FinCEN artiﬁcial intelligence system (FAIS) de-
+scribed below. More generally, banks are also requiredto report any suspicious transactions, and about 0.5%
+of currency transaction reports are so ﬂagged.
+Money laundering involves three steps:
+1.Placement : the introduction of the cash into the
+banking system or legitimate business (e.g., trans-
+ferring the banknotes obtained from retail drugstransactions into a cashier’s cheque). One way
+to do this is to pay vastly inﬂated amounts for
+goods imported across international frontiers. Pak
+and Zdanowicz (1994) described statistical analy-
+sis of trade databases to detect anomalies in gov-ernment trade data such as charging $1694 a gram
+for imports of the drug erythromycin compared with
+$0.08 a gram for exports.
+2.Layering : carrying out multiple transactions
+through multiple accounts with different owners at
+different ﬁnancial institutions in the legitimate ﬁ-
+nancial system.
+3.Integration : merging the funds with money obtained
+from legitimate activities.
+Detection strategies can be targeted at various lev-
+els. In general (and in common with some other ar-
+eas in which fraud is perpetrated), it is very difﬁcult or
+impossible to characterize an individual transaction as
+fraudulent. Rather transaction patterns must be iden-
+tiﬁed as fraudulent or suspicious. A single deposit of
+just under $10,000 is not suspicious, but multiple such
+deposits are; a large sum being deposited is not sus-picious, but a large sum being deposited and instantly
+withdrawn is. In fact, one can distinguish several levels
+of (potential) analysis: the individual transaction level,
+the account level, the business level (and, indeed, indi-
+viduals may have multiple accounts) and the “ring” ofbusinesses level. Analyses can be targeted at particular
+levels, but more complex approaches can examine sev-
+eral levels simultaneously. (There is an analogy here
+with speech recognition systems: simple systems fo-
+cused at the individual phoneme and word levels arenot as effective as those which try to recognize these
+elements in a higher level context of the way words
+are put together when used.) In general, link analy-sis, which identiﬁes groups of participants involved
+in transactions, plays a key role in most money laun-
+dering detection strategies. Senator et al. (1995) said
+“Money laundering typically involves a multitude of
+transactions, perhaps by distinct individuals, into mul-tiple accounts with different owners at different banks
+and other ﬁnancial institutions. Detection of large-scalemoney laundering schemes requires the ability to re-
+construct these patterns of transactions by linking po-tentially related transactions and then to distinguish
+the legitimate sets of transactions from the illegitimate
+ones. This technique of ﬁnding relationships between
+elements of information, called link analysis , is the pri-
+mary analytic technique used in law enforcement in-telligence (Andrews and Peterson, 1990).” An obvi-
+ous and simplistic illustration is the fact that a transac-
+tion with a known criminal may rouse suspicion. More
+subtle methods are based on recognition of the sort
+of businesses with which money laundering operationstransact. Of course, these are all supervised methods
+and are subject to the weaknesses that those responsi-
+ble may evolve their strategies. Similar tools are used
+to detect telecom fraud, as outlined in the following
+section.
+Rule-based systems have been developed, often
+with the rules based on experience (“ﬂag transactions
+from countries X and Y”; “ﬂag accounts showing
+a large deposit followed immediately by a similar
+sized withdrawal”). Structuring can be detected by
+computing the cumulative sum of amounts entering
+an account over a short window, such as a day. Othermethods have been developed based on straightforward
+descriptive statistics, such as rate of transactions and
+proportion of transactions which are suspicious. The
+use of the Benford distribution is an extension of this
+idea. Although one may not usually be interested indetecting changes in an account’s behavior, methods
+such as peer group analysis (Bolton and Hand, 2001)
+and break detection (Goldberg and Senator, 1997) can
+be applied to detect money laundering.
+One of the most elaborate money laundering detec-
+tion systems is the U.S. Financial Crimes Enforcement
+Network AI system (FAIS) described in Senator et al.
+(1995) and Goldberg and Senator (1998). This system
+allows users to follow trails of linked transactions. It
+is built around a “blackboard” architecture, in whichprogram modules can read and write to a central data-
+base that contains details of transactions, subjects and
+accounts. A key component of the system is its suspi-
+cion score. This is a rule-based system based on an ear-
+lier system developed by the U.S. Customs Service inthe mid-1980s. The system computes suspicion scores
+for various different types of transaction and activity.
+Simple Bayesian updating is used to combine evidence
+that suggests that a transaction or activity is illicit to
+yield an overall suspicion score. Senator et al. (1995)included a brief but interesting discussion of an inves-
+tigation of whether case-based reasoning (cf. nearest
+
+242 R. J. BOLTON AND D. J. HAND
+neighbor methods) and classiﬁcation tree techniques
+could usefully be added to the system.
+The American National Association of Securities
+Dealers, Inc., uses an advanced detection system (ADS;
+Kirkland et al., 1998; Senator, 2000) to ﬂag “patterns
+or practices of regulatory concern.” ADS uses a rule
+pattern matcher and a time-sequence pattern matcher,and (like FAIS) places great emphasis on visualization
+tools. Also as with FAIS, data mining techniques are
+used to identify new patterns of potential interest.
+A different approach to detecting similar fraudu-
+lent behavior is taken by SearchSpace Ltd. (www.searchspace.com), which has developed a system for
+the London Stock Exchange called MonITARS (moni-
+toring insider trading and regulatory surveillance) that
+combines genetic algorithms, fuzzy logic and neural
+network technology to detect insider dealing and mar-
+ket manipulation. Chartier and Spillane (2000) also
+described an application of neural networks to detectmoney laundering.
+5. TELECOMMUNICATIONS FRAUD
+The telecommunications industry has expanded dra-
+matically in the last few years with the development
+of affordable mobile phone technology. With the in-
+creasing number of mobile phone users, global mo-
+bile phone fraud is also set to rise. Various estimates
+have been presented for the cost of this fraud. For ex-ample, Cox, Eick, Wills and Brachman (1997) gave a
+ﬁgure of $1 billion a year. Telecom and Network Secu-
+rity Review [4(5) April 1997] gave a ﬁgure of between
+4 and 6% of U.S. telecom revenue lost due to fraud.
+Cahill, Lambert, Pinheiro and Sun (2002) suggestedthat international ﬁgures are worse, with “several new
+service providers reporting losses over 20%.” Moreau
+et al. (1996) gave a value of “several million ECUs per
+year.” Presumably this refers to within the European
+Union and, given the size of the other estimates, wewonder if this should be billions. According to a re-
+cent report (Neural Technologies, 2000), “the industry
+already reports a loss of £13 billion each year due to
+fraud.” Mobile Europe (2000) gave a ﬁgure of $13 bil-
+lion (U.S.). The latter article also claimed that it is es-timated that fraudsters can steal up to 5% of some op-
+erators’ revenues, and that some expect telecom fraud
+as a whole to reach $28 billion per year within 3 years.
+Despite the variety in these ﬁgures, it is clear that
+they are all very large. Apart from the fact that theyare simply estimates, and hence subject to expected
+inaccuracies and variability based on the informationused to derive them, there are other reasons for the
+differences. One is the distinction between hard andsoft currency. Hard currency is real money, paid by
+someone other than the perpetrator for the service
+the perpetrator has stolen. Hynninen (2000) gave the
+example of the sum one mobile phone operator will
+pay another for the use of their network. Soft currencyis the value of the service the perpetrator has stolen.
+At least part of this is only a loss if one assumes that
+the thief would have used the same service even if he
+or she had had to pay for it. Another reason for the
+differences derives from the fact that such estimatesmay be used for different purposes. Hynninen (2000)
+gave the examples of operators giving estimates on
+the high side, hoping for more stringent antifraud
+legislation, and operators giving estimates on the low
+side to encourage customer conﬁdence.
+We need to distinguish between fraud aimed at
+the service provider and fraud enabled bythe service
+provider. An example of the former is the resale
+of stolen call time and an example of the latter is
+interfering with telephone banking instructions. (It is
+the possibility of the latter sort of fraud which makes
+the public wary of using their credit cards over theInternet.) We can also distinguish between revenue
+fraud and nonrevenue fraud. The aim of the former is
+to make money for the perpetrator, while the aim of the
+latter is simply to obtain a service free of charge (or,
+as with computer hackers, e.g., the simple challengerepresented by the system).
+There are many different types of telecom fraud (see,
+e.g., Shawe-Taylor et al., 2000) and these can occur at
+various levels. The two most prevalent types are sub-
+scription fraud and superimposed or “surﬁng” fraud.Subscription fraud occurs when the fraudster obtains a
+subscription to a service, often with false identity de-
+tails, with no intention of paying. This is thus at the
+level of a phone number—all transactions from this
+number will be fraudulent. Superimposed fraud is theuse of a service without having the necessary authority
+and is usually detected by the appearance of phantom
+calls on a bill. There are several ways to carry out su-
+perimposed fraud, including mobile phone cloning and
+obtaining calling card authorization details. Superim-posed fraud will generally occur at the level of indi-
+vidual calls—the fraudulent calls will be mixed in with
+the legitimate ones. Subscription fraud will generally
+be detected at some point through the billing process—
+although the aim is to detect it well before that, sincelarge costs can quickly be run up. Superimposed fraud
+can remain undetected for a long time. The distinction
+
+STATISTICAL FRAUD DETECTION 243
+between these two types of fraud follows a similar dis-
+tinction in credit card fraud.
+Other types of telecom fraud include “ghosting”
+(technology that tricks the network so as to obtain freecalls) and insider fraud, where telecom company em-
+ployees sell information to criminals that can be ex-
+ploited for fraudulent gain. This, of course, is a univer-sal cause of fraud, whatever the domain. “Tumbling”is a type of superimposed fraud in which rolling fake
+serial numbers are used on cloned handsets, so that
+successive calls are attributed to different legitimatephones. The chance of detection by spotting unusualpatterns is small and the illicit phone will operate un-til all of the assumed identities have been spotted. The
+term “spooﬁng” is sometimes used to describe users
+pretending to be someone else.
+Telecommunications networks generate vast quanti-
+ties of data, sometimes on the order of several giga-bytes per day, so that data mining techniques are of
+particular importance. The 1998 database of AT&T, for
+example, contained 350 million proﬁles and processed275 million call records per day (Cortes and Pregibon,1998).
+As with other fraud domains, apart from some do-
+main speciﬁc tools, methods for detection hinge around
+outlier detection and supervised classiﬁcation, eitherusing rule-based methods or based on comparing sta-tistically derived suspicion scores with some thresh-old. At a low level, simple rule-based detection sys-
+tems use rules such as the apparent use of the same
+phone in two very distant geographical locations inquick succession, calls which appear to overlap in time,and very high value and very long calls. At a higherlevel, statistical summaries of call distributions (of-
+ten called proﬁles orsignatures at the user level) are
+compared with thresholds determined either by expertsor by application of supervised learning methods toknown fraud/nonfraud cases. Murad and Pinkas (1999)
+and Rosset et al. (1999) distinguished between proﬁl-
+ing at the levels of individual calls, daily call patternsand overall call patterns, and described what are effec-tively outlier detection methods for detecting anom-alous behavior. A particularly interesting description
+of proﬁling methods was given by Cortes and Pregibon
+(1998). Cortes, Fisher, Pregibon and Rogers (2000) de-scribed the Hancock language for writing programs
+for processing proﬁles, basing the signatures on suchquantities as average call duration, longest call dura-
+tion, number of calls to particular regions in the last
+day and so on. Proﬁling and classiﬁcation techniquesalso were described by Fawcett and Provost (1997a, b,
+1999) and Moreau, Verrelst and Vandewalle (1997).Some work (see, e.g., Fawcett and Provost, 1997a) hasfocused on detecting changes in behavior.
+A general complication is that signatures and thresh-
+olds may need to depend on time of day, type of ac-
+count and so on, and that they will probably need tobe updated over time. Cahill et al. (2002) suggestedexcluding the very suspicious scores in this updating
+process, although more work is needed in this area.
+Once again, neural networks have been widely used.
+The main fraud detection software of the FraudSolutions Unit of Nortel Networks (Nortel, 2000) usesa combination of proﬁling and neural networks. Like-
+wise, ASPeCT (Moreau et al., 1996; Shawe-Taylor
+et al., 2000), a project of the European Commis-sion, V odaphone, other European telecom compa-nies and academics, developed a combined rule-basedproﬁling and neural network approach. Taniguchi,
+Haft, Hollmén and Tresp (1998) described neural net-
+works, mixture models and Bayesian networks intelecom fraud detection based on call records storedfor billing.
+Link analysis, with links updated over time, estab-
+lishes the “communities of interest” (Cortes, Pregi-
+bon and V olinsky, 2001) that can indicate networks offraudsters. These methods are based on the observationthat fraudsters seldom change their calling habits, butare often closely linked to other fraudsters. Using sim-
+ilar patterns of transactions to infer the presence of a
+particular fraudster is in the spirit of phenomenal datamining (McCarthy, 2000).
+Visualization methods (Cox et al., 1997), developed
+for mining very large data sets, have also been devel-
+oped for use in telecom fraud detection. Here human
+pattern recognition skills interact with graphical com-puter display of quantities of calls between differentsubscribers in various geographical locations. A possi-
+ble future scenario would be to code into software the
+patterns which humans detect.
+The telecom market will become even more compli-
+cated over time—with more opportunity for fraud. Atpresent the extent of fraud is measured by consider-
+ing factors such as call lengths and tariffs. The third
+generation of mobile phone technology will also needto take into account such things as the content of thecalls (because of the packet switching technology used,equally long data transmissions may contain very dif-
+ferent numbers of data packets) and the priority of the
+call.
+
+244 R. J. BOLTON AND D. J. HAND
+6. COMPUTER INTRUSION
+On Thursday, September 21, 2000, a 16-year-old
+boy was jailed for hacking into both the Pentagon andNASA computer systems. Between the 14th and 25th
+of October 2000 Microsoft security tracked the illegal
+activity of a hacker on the Microsoft Corporate Net-work. These examples illustrate that even exception-
+ally well protected domains can have their computer
+security compromised.
+Computer intrusion fraud is big business and com-
+puter intrusion detection is a hugely intensive area of
+research. Hackers can ﬁnd passwords, read and changeﬁles, alter source code, read e-mails and so on. Den-
+ning (1997) listed eight kinds of computer intrusion. If
+the hackers can be prevented from penetrating the com-puter system or can be detected early enough, then such
+crime can be virtually eliminated. However, as with all
+fraud when the prizes are high, the attacks are adaptiveand once one kind of intrusion has been recognized the
+hacker will try a different route. Because of its impor-
+tance, a great deal of effort has been put into develop-ing intrusion detection methods, and there are several
+commercial products available, including Cisco secure
+intrusion detection system (CSIDS, 1999) and next-generation intrusion detection expert system (NIDES;
+Anderson, Frivold and Valdes, 1995).
+Since the only record of a hacker’s activities is the
+sequence of commands that is used when compromis-
+ing the system, analysts of computer intrusion data pre-
+dominantly use sequence analysis techniques. As withother fraud situations, both supervised and unsuper-
+vised methods are used. In the context of intrusion de-
+tection, supervised methods are sometimes called mis-
+use detection , while the unsupervised methods used
+are generally methods of anomaly detection, based on
+proﬁles of usage patterns for each legitimate user. Su-pervised methods have the problem described in other
+contexts, that they can, of course, only work on intru-
+sion patterns which have already occurred (or partialmatches to these). Lee and Stolfo (1998) applied clas-
+siﬁcation techniques to data from a user or program
+that has been identiﬁed as either normal or abnormal.Lippmann et al. (2000) concluded that emphasis should
+be placed on developing methods for detecting new
+patterns of intrusion rather than old patterns, but Ku-mar and Spafford (1994) remarked that “a majority of
+break-ins ...are the result of a small number of known
+attacks, as evidenced by reports from response teams(e.g., CERT). Automating detection of these attacks
+should therefore result in the detection of a signiﬁcantnumber of break-in attempts.” Shieh and Gligor (1991,
+1997) described a pattern-matching method and arguedthat it is more effective than statistical methods at de-
+tecting known types of intrusion, but is unable to de-
+tect novel kinds of intrusion patterns, which could be
+detected by statistical methods.
+Since intrusion represents behavior and the aim is
+to distinguish between intrusion behavior and usual
+behavior in sequences, Markov models have naturally
+been applied (e.g., Ju and Vardi, 2001). Qu et al.
+(1998) also used probabilities of events to deﬁne
+the proﬁle. Forrest, Hofmeyr, Somayaji and Longstaff(1996) described a method based on how natural
+immune systems distinguish between self and alien
+patterns. As with telecom data, both individual user
+patterns and overall network behavior change over
+time, so that a detection system must be able to adapt
+to changes, but not adapt so rapidly that it also accepts
+intrusions as legitimate changes. Lane and Brodley(1998) and Kosoresow and Hofmeyr (1997) also used
+similarity of sequences that can be interpreted in a
+probabilistic framework.
+Inevitably, neural networks have been used: Ryan,
+Lin and Miikkulainen (1997) performed proﬁling bytraining a neural network on the process data and
+also referenced other neural approaches. In one of the
+more careful studies in the area, Schonlau et al. (2001)
+described a comparative study of six statistical ap-
+proaches for detecting impersonation of other users(masquerading), where they took real usage data from
+50 users and planted contaminating data from other
+users to serve as the masquerade targets to be detected.
+A nice overview of statistical issues in computer intru-
+sion detection was given by Marchette (2001), and theOctober 2000 edition of Computer Networks [34(4)] is
+a special issue on (relatively) recent advances in intru-
+sion detection systems, including several examples of
+new approaches to computer intrusion detection.
+7. MEDICAL AND SCIENTIFIC FRAUD
+Medical fraud can occur at various levels. It can oc-
+cur in clinical trials (see, e.g., Buyse et al., 1999). It can
+also occur in a more commercial context: for example,prescription fraud, submitting claims for patients who
+are dead or who do not exist, and upcoding, where a
+doctor performs a medical procedure, but charges the
+insurer for one that is more expensive, or perhaps does
+not even perform one at all. Allen (2000) gave an ex-ample of bills submitted for more than 24 hours in a
+working day. He, Wang, Graco and Hawkins (1997)
+
+STATISTICAL FRAUD DETECTION 245
+and He, Graco and Yao (1999) described the use of
+neural networks, genetic algorithms and nearest neigh-bor methods to classify the practice proﬁles of general
+practitioners in Australia into classes from normal to
+abnormal.
+Medical fraud is often linked to insurance fraud:
+Terry Allen, a statistician with the Utah Bureau ofMedicaid Fraud, estimated that up to 10% of the
+$800 million annual claims may be stolen (Allen,
+2000). Major and Riedinger (1992) created a know-
+ledge/statistical-based system to detect healthcare
+fraud by comparing observations with those withwhich they should be most similar (e.g., having simi-
+lar geodemographics). Brockett, Xia and Derrig (1998)
+used neural networks to classify fraudulent and non-
+fraudulent claims for automobile bodily injury in
+healthcare insurance claims. Glasgow (1997) gave a
+short discussion of risk and fraud in the insurance in-
+dustry. A glossary of several of the different types ofmedical fraud is available at http://www.motherjones.
+com/mother_jones/MA95/davis2.html.
+Of course, medicine is not the only scientiﬁc area
+where data have sometimes been fabricated, falsiﬁed
+or carefully selected to support a pet theory. Problemsof fraud in science are attracting increased attention,
+but they have always been with us: errant scientists
+have been known to massage ﬁgures from experiments
+to push through development of a product or reach a
+magical signiﬁcance level for a publication. DmitriyYuryev described such a case on his webpages at
+http://www.orc.ru/ ∼yur77/statfr.htm. Moreover, there
+are many classical cases in which the data have
+been suspected of being massaged (including the
+work of Galileo, Newton, Babbage, Kepler, Mendel,Millikan and Burt). Press and Tanur (2001) presented
+a fascinating discussion of the role of subjectivity in
+the scientiﬁc process, illustrating with many examples.
+The borderline between subconscious selection of data
+and out-and-out distortion is a ﬁne one.
+8. CONCLUSIONS
+The areas we have outlined are perhaps those in
+which statistical and other data analytic tools havemade the most impact on fraud detection. This is typi-
+cally because there are large quantities of information,
+and this information is numerical or can easily be con-
+verted into the numerical in the form of counts and pro-
+portions. However, other areas, not mentioned above,have also used statistical tools for fraud detection. Ir-
+regularities in ﬁnancial statements can be used to detectaccounting and management fraud in contexts broader
+than those of money laundering. Digit analysis toolshave found favor in accountancy (e.g., Nigrini and
+Mittermaier, 1997; Nigrini, 1999). Statistical sampling
+methods are important in ﬁnancial audit, and screen-
+ing tools are applied to decide which tax returns merit
+detailed investigation. We mentioned insurance fraudin the context of medicine, but it clearly occurs more
+widely. Artís, Ayuso and Guillén (1999) described an
+approach to modelling fraud behavior in car insurance,
+and Fanning, Cogger and Srivastava (1995) and Green
+and Choi (1997) examined neural network classiﬁca-tion methods for detecting management fraud. Statis-
+tical tools for fraud detection have also been applied
+to sporting events. For example, Robinson and Tawn
+(1995), Smith (1997) and Barao and Tawn (1999) ex-
+amined the results of running events to see if some ex-ceptional times were out of line with what might be
+expected.
+Plagiarism is also a type of fraud. We brieﬂy referred
+to the use of statistical tools for author veriﬁcation
+and such methods can be applied here. However,
+statistical tools can also be applied more widely.
+For example, with the evolution of the Internet it isextremely easy for students to plagiarize articles and
+pass them off as their own in school or university
+coursework. The website http://www.plagiarism.org
+describes a system that can take a manuscript and
+compare it against their “substantial database” ofarticles from the Web. A statistical measure of the
+originality of the manuscript is returned.
+As we commented in the Introduction, fraud detec-
+tion is a post hoc strategy, being applied after fraud
+prevention has failed. Statistical tools are also appliedin some fraud prevention methods. For example, so-
+called biometric methods of fraud detection are slowly
+becoming more widespread. These include computer-
+ized ﬁngerprint and retinal identiﬁcation, and also face
+recognition (although this has received most publicityin the context of recognizing football hooligans).
+In many of the applications we have discussed, speed
+of processing is of the essence. This is particularly the
+case in transaction processing, especially with telecom
+and intrusion data, where vast numbers of records areprocessed every day, but also applies in credit card,
+banking and retail sectors.
+A key issue in all of this work is how effective the
+statistical tools are in detecting fraud and a fundamen-
+tal problem is that one typically does not know howmany fraudulent cases slip through the net. In applica-
+tions such as banking fraud and telecom fraud, where
+
+246 R. J. BOLTON AND D. J. HAND
+speed of detection matters, measures such as average
+time to detection after fraud starts (in minutes, num-bers of transactions, etc.) should also be reported. Mea-sures of this aspect interact with measures of ﬁnal de-tection rate: in many situations an account, telephoneand so forth, will have to be used for several fraudulenttransactions before it is detected as fraudulent, so thatseveral false negative classiﬁcations will necessarily bemade.
+An appropriate overall strategy is to use a graded
+system of investigation. Accounts with very highsuspicion scores merit immediate and intensive (and
+expensive) investigation, while those with large but
+less dramatic scores merit closer (but not expensive)observation. Once again, it is a matter of choosing asuitable compromise.
+Finally, it is worth repeating the conclusions reached
+by Schonlau et al. (2001), in the context of statisti-cal tools for computer intrusion detection: “statisticalmethods can detect intrusions, even in difﬁcult circum-stances,” but also “many challenges and opportunitiesfor statistics and statisticians remain.” We believe thispositive conclusion holds more generally. Fraud detec-tion is an important area, one in many ways ideal forthe application of statistical and data analytic tools, andone where statisticians can make a very substantial andimportant contribution.
+ACKNOWLEDGMENT
+The work of Richard Bolton was supported by
+a ROPA award from the Engineering and PhysicalSciences Research Council of the United Kingdom.
+REFERENCES
+ALESKEROV ,E . ,F REISLEBEN ,B .a n dR AO, B. (1997). CARD-
+WATCH: A neural network based database mining system for
+credit card fraud detection. In Computational Intelligence for
+Financial Engineering. Proceedings of the IEEE/IAFE 220–
+226. IEEE, Piscataway, NJ.
+ALLEN , T. (2000). A day in the life of a Medicaid fraud statistician.
+Stats 2920–22.
+ANDERSON ,D . ,F RIVOLD ,T .a n dV ALDES , A. (1995). Next-
+generation intrusion detection expert system (NIDES): A sum-mary. Technical Report SRI-CSL-95-07, Computer ScienceLaboratory, SRI International, Menlo Park, CA.
+A
+NDREWS ,P .P .a n dP ETERSON , M. B., eds. (1990). Criminal
+Intelligence Analysis . Palmer Enterprises, Loomis, CA.
+ARTÍS ,M . ,A YUSO ,M .a n dG UILLÉN , M. (1999). Modelling
+different types of automobile insurance fraud behaviour in theSpanish market. Insurance Mathematics and Economics 24
+67–81.B
+ARAO ,M .I .a n dT AWN , J. A. (1999). Extremal analysis of short
+series with outliers: Sea-levels and athletics records. Appl.
+Statist. 48469–487.
+BLUNT ,G .a n dH AND , D. J. (2000). The UK credit card market.
+Technical report, Dept. Mathematics, Imperial College, Lon-don.
+B
+OLTON ,R .J .a n dH AND , D. J. (2001). Unsupervised proﬁling
+methods for fraud detection. In Conference on Credit Scoring
+and Credit Control 7, Edinburgh, UK, 5–7 Sept.
+BRAUSE ,R . ,L ANGSDORF ,T .a n dH EPP, M. (1999). Neural data
+mining for credit card fraud detection. In Proceedings of the
+11th IEEE International Conference on Tools with Artiﬁcial
+Intelligence 103–106. IEEE Computer Society Press, Silver
+Spring, MD.
+BREIMAN ,L . ,F RIEDMAN ,J .H . ,O LSHEN ,R .A .a n d
+STONE , C. J. (1984). Classiﬁcation and Regression Trees .
+Wadsworth, Belmont, CA.
+BROCKETT ,P .L . ,X IA,X .a n dD ERRIG , R. A. (1998). Using
+Kohonen’s self-organising feature map to uncover automobile
+bodily injury claims fraud. The Journal of Risk and Insurance
+65245–274.
+BURGE ,P .a n dS HAWE -TAYLOR , J. (1997). Detecting cellular
+fraud using adaptive prototypes. In AAAI Workshop on AI
+Approaches to Fraud Detection and Risk Management 9–13.
+AAAI Press, Menlo Park, CA.
+BUYSE ,M . ,G EORGE ,S .L . ,E V ANS ,S . ,G ELLER ,N .L . ,
+RANSTAM ,J . ,S CHERRER ,B . ,L ESAFFRE ,E . ,M URRAY ,G . ,
+EDLER ,L . ,H UTTON ,J . ,C OLTON ,T . ,L ACHENBRUCH ,P .
+and V ERMA , B. L. (1999). The role of biostatistics in the
+prevention, detection and treatment of fraud in clinical trials.Statistics in Medicine 183435–3451.
+C
+AHILL ,M .H . ,L AMBERT ,D . ,P INHEIRO ,J .C .a n dS UN,D .X .
+(2002). Detecting fraud in the real world. In Handbook of Mas-
+sive Datasets (J. Abello, P. M. Pardalos and M. G. C. Resende,
+eds.). Kluwer, Dordrecht.
+CHAN ,P .K . ,F AN,W . ,P RODROMIDIS ,A .L .a n dS TOLFO ,S .J .
+(1999). Distributed data mining in credit card fraud detection.IEEE Intelligent Systems 14(6) 67–74.
+C
+HAN ,P .a n dS TOLFO , S. (1998). Toward scalable learning
+with non-uniform class and cost distributions: A case study
+in credit card fraud detection. In Proceedings of the Fourth
+International Conference on Knowledge Discovery and DataMining 164–168. AAAI Press, Menlo Park, CA.
+C
+HARTIER ,B .a n dS PILLANE , T. (2000). Money laundering
+detection with a neural network. In Business Applications of
+Neural Networks (P. J. G. Lisboa, A. Vellido and B. Edisbury,
+eds.) 159–172. World Scientiﬁc, Singapore.
+CHHIKARA ,R .S .a n dM CKEON, J. (1984). Linear discriminant
+analysis with misallocation in training samples. J. Amer.
+Statist. Assoc. 79899–906.
+CLARK ,P .a n dN IBLETT , T. (1989). The CN2 induction algorithm.
+Machine Learning 3261–285.
+COHEN , W. (1995). Fast effective rule induction. In Proceedings of
+the 12th International Conference on Machine Learning 115–
+123. Morgan Kaufmann, Palo Alto, CA.
+CORTES ,C . ,F ISHER ,K . ,P REGIBON ,D .a n dR OGERS ,A .
+(2000). Hancock: A language for extracting signatures from
+data streams. In Proceedings of the Sixth ACM SIGKDD
+International Conference on Knowledge Discovery and DataMining 9–17. ACM Press, New York.
+
+STATISTICAL FRAUD DETECTION 247
+CORTES ,C .a n dP REGIBON , D. (1998). Giga-mining. In Proceed-
+ings of the Fourth International Conference on KnowledgeDiscovery and Data Mining 174–178. AAAI Press, Menlo
+Park, CA.
+C
+ORTES ,C ,P REGIBON ,D .a n dV OLINSKY , C. (2001). Commu-
+nities of interest. Lecture Notes in Comput. Sci. 2189 105–114.
+COX,K .C . ,E ICK,S .G .a n dW ILLS , G. J. (1997). Visual data
+mining: Recognizing telephone calling fraud. Data Mining and
+Knowledge Discovery 1225–231.
+CSIDS (1999). Cisco secure intrusion detection system tech-
+nical overview. Available at http://www.wheelgroup.com/
+warp/public/cc/cisco/mkt/security/nranger/tech/ntran_tc.htm.
+DENNING , D. E. (1997). Cyberspace attacks and countermeasures.
+InInternet Besieged (D. E. Denning and P. J. Denning, eds.)
+29–55. ACM Press, New York.
+DORRONSORO ,J .R . ,G INEL ,F . ,S ANCHEZ ,C .a n dC RUZ,C .S .
+(1997). Neural fraud detection in credit card operations. IEEE
+Transactions on Neural Networks 8827–834.
+FANNING ,K . ,C OGGER ,K .O .a n dS R I VA S TAVA , R. (1995).
+Detection of management fraud: A neural network approach.
+International Journal of Intelligent Systems in Accounting,
+Finance and Management 4113–126.
+FAWCETT ,T .a n dP ROVOST , F. (1997a). Adaptive fraud detection.
+Data Mining and Knowledge Discovery 1291–316.
+FAWCETT ,T .a n dP ROVOST , F. (1997b). Combining data mining
+and machine learning for effective fraud detection. In AAAI
+Workshop on AI Approaches to Fraud Detection and Risk
+Management 14–19. AAAI Press, Menlo Park, CA.
+FAWCETT ,T .a n dP ROVOST , F. (1999). Activity monitoring:
+Noticing interesting changes in behavior. In Proceedings of the
+Fifth ACM SIGKDD International Conference on Knowledge
+Discovery and Data Mining 53–62. ACM Press, New York.
+FORREST ,S . ,H OFMEYR ,S . ,S OMAYAJI ,A .a n dL ONGSTAFF ,T .
+(1996). A sense of self for UNIX processes. In Proceedings of
+the 1996 IEEE Symposium on Security and Privacy 120–128.
+IEEE Computer Society Press, Silver Spring, MD.
+GHOSH ,S .a n dR EILLY , D. L. (1994). Credit card fraud detection
+with a neural network. In Proceedings of the 27th Hawaii
+International Conference on System Sciences ( J .F .N u n a m a k e r
+and R. H. Sprague, eds.) 3621–630. IEEE Computer Society
+Press, Los Alamitos, CA.
+GLASGOW , B. (1997). Risk and fraud in the insurance industry.
+InAAAI Workshop on AI Approaches to Fraud Detection and
+Risk Management 20–21. AAAI Press, Menlo Park, CA.
+GOLDBERG ,H .a n dS ENA TOR , T. E. (1995). Restructuring data-
+bases for knowledge discovery by consolidation and link for-mation. In Proceedings of the First International Conference
+on Knowledge Discovery and Data Mining 136–141. AAAI
+Press, Menlo Park, CA.
+G
+OLDBERG ,H .a n dS ENA TOR , T. E. (1997). Break detection
+systems. In AAAI Workshop on AI Approaches to Fraud
+Detection and Risk Management 22–28. AAAI Press, Menlo
+Park, CA.GOLDBERG ,H .a n dS ENA TOR , T. E. (1998). The FinCEN AI
+system: Finding ﬁnancial crimes in a large database of cash
+transactions. In Agent Technology :Foundations, Applications,
+and Markets (N. Jennings and M. Wooldridge, eds.) 283–302.
+Springer, Berlin.
+GREEN ,B .P .a n dC HOI, J. H. (1997). Assessing the risk
+of management fraud through neural network technology.
+Auditing 1614–28.
+HAND , D. J. (1981). Discrimination and Classiﬁcation .W i l e y ,
+Chichester.
+HAND , D. J. (1997). Construction and Assessment of Classiﬁca-
+tion Rules . Wiley, Chichester.
+HAND ,D .J .a n dB LUNT , G. (2001). Prospecting for gems in credit
+card data. IMA Journal of Management Mathematics 12173–
+200.
+HAND ,D .J . ,B LUNT ,G . ,K ELLY ,M .G .a n dA DAMS ,N .M .
+(2000). Data mining for fun and proﬁt (with discussion).Statist. Sci. 15111–131.
+H
+AND ,D .J .a n dH ENLEY , W. E. (1997). Statistical classiﬁcation
+methods in consumer credit scoring: A review. J. Roy. Statist.
+S o c .S e r .A 160523–541.
+HASSIBI , K. (2000). Detecting payment card fraud with neural
+networks. In Business Applications of Neural Networks
+(P. J. G. Lisboa, A. Vellido and B. Edisbury, eds.). World Sci-
+entiﬁc, Singapore.
+HE,H . ,G RACO ,W .a n dY AO, X. (1999). Application of genetic
+algorithm and k-nearest neighbour method in medical fraud
+detection. Lecture Notes in Comput. Sci. 1585 74–81. Springer,
+Berlin.
+HE,H .X . ,W ANG ,J .C . ,G RACO ,W .a n dH AWKINS , S. (1997).
+Application of neural networks to detection of medical fraud.Expert Systems with Applications 13329–336.
+H
+ILL, T. P. (1995). A statistical derivation of the signiﬁcant-digit
+law.Statist. Sci. 10354–363.
+HYNNINEN , J. (2000). Experiences in mobile phone fraud. Semi-
+nar on Network Security. Report Tik-110.501, Helsinki Univ.Technology.
+J
+ENKINS , P. (2000). Getting smart with fraudsters. Financial
+Times , September 23.
+JENSEN , D. (1997). Prospective assessment of AI technologies
+for fraud detection: a case study. In AAAI Workshop on AI
+Approaches to Fraud Detection and Risk Management 34–38.
+AAAI Press, Menlo Park, CA.
+JU,W . - H .a n dV ARDI , Y. (2001). A hybrid high-order Markov
+chain model for computer intrusion detection. J. Comput.
+Graph. Statist. 10277–295.
+KIRKLAND ,J .D . ,S ENA TOR ,T .E . ,H AYDEN ,J .J . ,D YBALA ,T . ,
+GOLDBERG ,H .G .a n dS HYR, P. (1998). The NASD regula-
+tion advanced detection system (ADS). In Proceedings of the
+15th National Conference on Artiﬁcial Intelligence (AAAI-98)
+and of the 10th Conference on Innovative Applications of Ar-
+tiﬁcial Intelligence (IAAI-98) 1055–1062. AAAI Press, Menlo
+Park, CA.
+KOSORESOW ,A .P .a n dH OFMEYR , S. A. (1997). Intrusion
+detection via system call traces. IEEE Software 1435–42.
+KUMAR ,S .a n dS PAFFORD , E. (1994). A pattern matching model
+for misuse intrusion detection. In Proceedings of the 17th
+National Computer Security Conference 11–21.
+LACHENBRUCH , P. A. (1966). Discriminant analysis when the
+initial samples are misclassiﬁed. Technometrics 8657–662.
+
+248 R. J. BOLTON AND D. J. HAND
+LACHENBRUCH , P. A. (1974). Discriminant analysis when the ini-
+tial samples are misclassiﬁed. II: Non-random misclassiﬁca-tion models. Technometrics 16419–424.
+L
+ANE,T .a n dB RODLEY , C. E. (1998). Temporal sequence learn-
+ing and data reduction for anomaly detection. In Proceedings
+of the 5th ACM Conference on Computer and CommunicationsSecurity (CCS-98) 150–158. ACM Press, New York.
+L
+EE,W .a n dS TOLFO , S. (1998). Data mining approaches for
+intrusion detection. In Proceedings of the 7th USENIX Security
+Symposium , San Antonio, TX 79–93. USENIX Association,
+Berkeley, CA.
+LEONARD , K. J. (1993). Detecting credit card fraud using expert
+systems. Computers and Industrial Engineering 25103–106.
+LIPPMANN ,R . ,F RIED ,D . ,G RAF,I . ,H AINES ,J . ,
+KENDALL ,K . ,M CCLUNG ,D . ,W EBER ,D . ,W EBSTER ,S . ,
+WYSCHOGROD ,D . ,C UNNINGHAM ,R .a n dZ ISSMAN ,M .
+(2000). Evaluating intrusion detection systems: The 1998DARPA off-line intrusion-detection evaluation. Unpublishedmanuscript, MIT Lincoln Laboratory.
+M
+AJOR ,J .A .a n dR IEDINGER , D. R. (1992). EFD: A hybrid
+knowledge/statistical-based system for the detection of fraud.
+International Journal of Intelligent Systems 7687–703.
+MARCHETTE , D. J. (2001). Computer Intrusion Detection and
+Network Monitoring :A Statistical Viewpoint . Springer, New
+York.
+MCCARTHY , J. (2000). Phenomenal data mining. Comm. ACM 43
+75–79.
+MCLACHLAN , G. J. (1992). Discriminant Analysis and Statistical
+Pattern Recognition . Wiley, New York.
+MOBILE EUROPE (2000). New IP world, new dangers. Mobile
+Europe , March.
+MOREAU ,Y . ,P RENEEL ,B . ,B URGE ,P . ,S HAWE -TAYLOR ,J . ,
+STOERMANN ,C .a n dC OOKE , C. (1996). Novel techniques
+for fraud detection in mobile communications. In ACTS Mobile
+Summit, Grenada .
+MOREAU ,Y . ,V ERRELST ,H .a n dV ANDEWALLE , J. (1997). De-
+tection of mobile phone fraud using supervised neural net-works: A ﬁrst prototype. In Proceedings of 7th International
+Conference on Artiﬁcial Neural Networks (ICANN’97) 1065–
+1070. Springer, Berlin.
+M
+URAD ,U .a n dP INKAS , G. (1999). Unsupervised proﬁling for
+identifying superimposed fraud. Principles of Data Mining
+and Knowledge Discovery .Lecture Notes in Artiﬁcial Intelli-
+gence 1704 251–261. Springer, Berlin.
+NEURAL TECHNOLOGIES (2000). Reducing telecoms fraud and
+churn. Report, Neural Technologies, Ltd., Petersﬁeld, U.K.
+NIGRINI , M. J. (1999). I’ve got your number. Journal of Accoun-
+tancy May 79–83.
+NIGRINI ,M .J .a n dM ITTERMAIER , L. J. (1997). The use of
+Benford’s law as an aid in analytical procedures. Auditing :A
+Journal of Practice and Theory 1652–67.
+NORTEL (2000). Nortel networks fraud solutions. Fraud Primer,
+Issue 2.0. Nortel Networks Corporation.
+PAK,S .J .a n dZ DANOWICZ , J. S. (1994). A statistical analysis of
+the U.S. Merchandise Trade Database and its uses in trans-fer pricing compliance and enforcement. Tax Management ,
+May 11.P
+AT IE NT , S. (2000). Reducing online credit card fraud.
+Web Developer’s Journal . Available at http://www.
+webdevelopersjournal.com/articles/card_fraud.html
+PRESS ,S .J .a n dT ANUR , J. M. (2001). The Subjectivity of
+Scientists and the Bayesian Approach . Wiley, New York.
+PROVOST ,F .a n dF AWCETT , T. (2001). Robust classiﬁcation for
+imprecise environments. Machine Learning 42203–210.
+QU,D . ,V ETTER ,B .M . ,W ANG ,F . ,N ARAYAN ,R . ,W U,S .F . ,
+HOU,Y .F . ,G ONG ,F .a n dS ARGOR , C. (1998). Statistical
+anomaly detection for link-state routing protocols. In Proceed-
+ings of the Sixth International Conference on Network Proto-cols62–70. IEEE Computer Society Press, Los Alamitos, CA.
+Q
+UINLAN , J. R. (1990). Learning logical deﬁnitions from rela-
+tions. Machine Learning 5239–266.
+QUINLAN , J. R. (1993). C4.5 :Programs for Machine Learning .
+Morgan Kaufmann, San Mateo, CA.
+RIPLEY , B. D. (1996). Pattern Recognition and Neural Networks .
+Cambridge Univ. Press.
+ROBINSON ,M .E .a n dT AWN , J. A. (1995). Statistics for excep-
+tional athletics records. Appl. Statist. 44499–511.
+ROSSET ,S . ,M URAD ,U . ,N EUMANN ,E . ,I DAN,Y .a n d
+PINKAS , G. (1999). Discovery of fraud rules for
+telecommunications—challenges and solutions. In Pro-
+ceedings of the Fifth ACM SIGKDD International Conferenceon Knowledge Discovery and Data Mining 409–413. ACM
+Press, New York.
+R
+YAN,J . ,L IN,M .a n dM IIKKULAINEN , R. (1997). Intrusion
+detection with neural networks. In AAAI Workshop on AI
+Approaches to Fraud Detection and Risk Management 72–79.
+AAAI Press, Menlo Park, CA.
+SCHONLAU ,M . ,D UMOUCHEL ,W . ,J U,W . - H . ,K ARR,A .F . ,
+THEUS ,M .a n dV ARDI , Y. (2001). Computer intrusion:
+Detecting masquerades. Statist. Sci. 1658–74.
+SENA TOR , T. E. (2000). Ongoing management and application
+of discovered knowledge in a large regulatory organization:A case study of the use and impact of NASD regulation’sadvanced detection system (ADS). In Proceedings of the
+Sixth ACM SIGKDD International Conference on Knowledge
+Discovery and Data Mining 44–53. ACM Press, New York.
+S
+ENA TOR ,T .E . ,G OLDBERG ,H .G . ,W OOTON ,J . ,C OT-
+TINI,M .A . ,U MAR KHAN ,A .F . ,K LINGER ,C .D . ,L LA-
+MAS ,W .M . ,M ARRONE ,M .P .a n dW ONG , R. W. H. (1995).
+The ﬁnancial crimes enforcement network AI system (FAIS)—
+Identifying potential money laundering from reports of largecash transactions. AI Magazine 1621–39.
+S
+HAWE -TAYLOR ,J . ,H OWKER ,K . ,G OSSET ,P . ,H YLAND ,
+M., V ERRELST ,H . ,M OREAU ,Y . ,S TOERMANN ,C .a n d
+BURGE , P. (2000). Novel techniques for proﬁling and fraud
+detection in mobile telecommunications. In Business Appli-
+cations of Neural Networks (P. J. G. Lisboa, A. Vellido and
+B.Edisbury, eds.) 113–139. World Scientiﬁc, Singapore.
+SHIEH ,S . - P .W .a n dG LIGOR , V. D. (1991). A pattern-oriented
+intrusion-detection model and its applications. In Proceedings
+of the 1991 IEEE Computer Society Symposium on Research inSecurity and Privacy 327–342. IEEE Computer Society Press,
+Silver Spring, MD.
+S
+HIEH ,S . - P .W .a n dG LIGOR , V. D. (1997). On a pattern-
+oriented model for intrusion detection. IEEE Transactions on
+Knowledge and Data Engineering 9661–667.
+
+STATISTICAL FRAUD DETECTION 249
+SMITH , R. L. (1997). Comment on “Statistics for exceptional
+athletics records,” by M. E. Robinson and J. A. Tawn. Appl.
+Statist. 46123–128.
+STOLFO ,S .J . ,F AN,D .W . ,L EE,W . ,P RODROMIDIS ,A .L .a n d
+CHAN , P. K. (1997a). Credit card fraud detection using meta-
+learning: Issues and initial results. In AAAI Workshop on AI
+Approaches to Fraud Detection and Risk Management 83–90.
+AAAI Press, Menlo Park, CA.
+STOLFO ,S . ,F AN,W . ,L EE,W . ,P RODROMIDIS ,A .L .a n d
+CHAN , P. (1999). Cost-based modeling for fraud and intrusion
+detection: Results from the JAM Project. In Proceedings of the
+DARPA Information Survivability Conference and Exposition2130–144. IEEE Computer Press, New York.
+S
+TOLFO ,S .J . ,P RODROMIDIS ,A .L . ,T SELEPIS ,S . ,L EE,W . ,
+FAN,D .W .a n dC HAN , P. K. (1997b). JAM: Java agents for
+meta-learning over distributed databases. In AAAI Workshop
+on AI Approaches to Fraud Detection and Risk Management91–98. AAAI Press, Menlo Park, CA.T
+ANIGUCHI ,M . ,H AFT,M . ,H OLLMÉN ,J .a n dT RESP ,V .
+(1998). Fraud detection in communication networks using
+neural and probabilistic methods. In Proceedings of the 1998
+IEEE International Conference on Acoustics, Speech and
+Signal Processing (ICASSP’98) 21241–1244. IEEE Computer
+Society Press, Silver Spring, MD.
+U.S. C ONGRESS (1995). Information technologies for the control
+of money laundering. Ofﬁce of Technology Assessment, Re-
+port OTA-ITC-630, U.S. Government Printing Ofﬁce, Wash-ington, DC.
+W
+ASSERMAN ,S .a n dF AUST , K. (1994). Social Network Analysis :
+Methods and Applications . Cambridge Univ. Press.
+WEBB, A. R. (1999). Statistical Pattern Recognition . Arnold,
+London.
+WHEELER ,R .a n dA ITKEN , S. (2000). Multiple algorithms
+for fraud detection. Knowledge-Based Systems 13(2/3)
+93–99.
+Comment
+Foster Provost
+The state of research on fraud detection recalls John
+Godfrey Saxe’s 19th-century poem “The Blind Menand the Elephant” (Felleman, 1936, page 521). Based
+on a Hindu fable, each blind man experiences only a
+part of the elephant, which shapes his opinion of thenature of the elephant: the leg makes it seem like atree, the tail a rope, the trunk a snake and so on. In fact,“ ...t hough each was partly in the right ...a l l w e r e i n
+the wrong.” Saxe’s poem was a criticism of theological
+debates, and I do not intend such a harsh criticismof research on fraud detection. However, because theproblem is so complex, each research project takesa particular angle of attack, which often obscures
+the view of other parts of the problem. So, some
+researchers see the problem as one of classiﬁcation,others of temporal pattern discovery; to some it isa problem perfect for a hidden Markov model andso on.
+So why is fraud detection not simply classiﬁcation
+or a member of some other already well-understoodproblem class? Bolton and Hand outline several char-acteristics of fraud detection problems that differenti-
+ate them [as did Tom Fawcett and I in our review of
+the problems and techniques of fraud detection (Faw-
+Foster Provost is Associate Professor, Leonard N. Stern
+School of Business, New York University, New York,New York 10012 (e-mail: provost@acm.org).cett and Provost, 2002)]. Consider fraud detection as a
+classiﬁcation problem. Fraud detection certainly mustbe “cost-sensitive”—rather than minimizing error rate,some other loss function must be minimized. In addi-tion, usually the marginal class distribution is skewedstrongly toward one class (legitimate behavior). There-fore, modeling for fraud detection at least is a difﬁ-cult problem of estimating class membership probabil-ity, rather than simple classiﬁcation. However, this still
+is an unsatisfying attempt to transform the true prob-
+lem into one for which we have existing tools (prac-tical and conceptual). The objective function for frauddetection systems actually is much more complicated.For example, the value of detection is a function oftime. Immediate detection is much more valuable thandelayed detection. Unfortunately, evidence builds upover time, so detection is easier the longer it is de-layed. In cases of self-revealing fraud, eventually, de-tection is trivial (e.g., a defrauded customer calls tocomplain about fraudulent transactions on his or herbill).
+In most research on modeling for fraud detection,
+a subproblem is extracted (e.g., classifying transac-
+tions or accounts as being fraudulent) and techniques
+are compared for solving this subproblem—withoutmoving on to compare the techniques for the greaterproblem of detecting fraud. Each particular subprob-lem naturally will abstract away those parts that are
+
+250 R. J. BOLTON AND D. J. HAND
+problematic for the technique at hand (e.g., temporal
+aspects are ignored for research on applying standardclassiﬁcation approaches). However, fraud detectioncan beneﬁt from classiﬁcation, regression, time-seriesanalysis, temporal pattern discovery, techniques for
+combining evidence and others. For example, tempo-
+ral sequences of particular actions can provide strongclues to the existence of fraud. A common exampleof such a temporal sequence is a triggering event fol-
+lowed in a day or two by an acceleration of usage.
+In credit card fraud, bandits purchase small amountsof gasoline (at a safe, automatic pump) to verify thata card is active before selling it. In wireless tele-phone fraud, bandits call a movie theater informa-
+tion number for veriﬁcation. In a standard classiﬁca-
+tion framework, temporal patterns must be engineeredcarefully into the representation. On the other hand,in a framework designed to focus on the discovery oftemporal sequences, many facets of advanced classi-
+ﬁcation may be ignored; for example, classiﬁer learn-
+ers can take advantage (automatically) of mixed-typevariables, including numeric, categorical, set-valuedand text, and hierarchical background knowledge (Aro-nis and Provost, 1997) such as geographic hierar-
+chies.
+This is just one example of a pair of different
+views of the problem, each with its advantages anddisadvantages. Another is, as Bolton and Hand pointout, the supervised/unsupervised duality to modeling
+for fraud detection: some fraudulent activity can be
+detected by applying knowledge generalized from past,labeled cases; other activity is better detected bynoticing behavior that differs signiﬁcantly from thenorm.
+Fraud detection and intervention can have two
+modes: automatic and mixed initiative (human/compu-ter). Automatic intervention only occurs when thereis very strong evidence that fraud exists; otherwise,
+false alarms would be disastrous. Remember that fraud
+detection systems consider millions (sometimes tensor hundreds of millions) of accounts. On a customerbase of only 1 million accounts, a daily false-alarmrate of even 1% would yield 10,000 false alarms
+a day; the cost of dealing with these (e.g., if ac-
+counts were incorrectly shut down) could be enor-mous.
+Mixed-initiative detection and intervention deals
+with cases that do not have enough evidence for au-
+tomatic intervention (or with applications for which
+automatic intervention does not make sense). Frauddetection systems create “cases” comprising the ev-
+idence collected so far that indicates fraud. Fraudanalysts process these cases, often going to auxil-iary sources of data to augment their analyses. Atany time, a case list can be sorted by some score:
+a probability of fraud, computed from all the evi-
+dence collected so far, an expected loss or simply anad hoc score. The unit of analysis for the produc-tion of the score is complicated: it is composed of
+a series of transactions, which comprises the poten-
+tially fraudulent activity and possibly legitimate ac-tivity as well. The unit of analysis also could includeother information, such as that taken from accountapplications, background databases, behavior proﬁles
+(which may have been compiled from previous trans-
+action activity) and possibly account annotations madeby prior analysts (e.g., “this customer often triggersrule X”).
+A part of the fraud detection elephant that has not
+received much attention is the peculiar nonstationary
+nature of the problem. Not only does the phenom-enon being modeled change over time—sometimesdramatically—it changes in direct response to the mod-eling of it. As soon as a model is put into place, it
+begins to lose effectiveness. For example, after real-
+izing that the appearance of a large volume of trans-actions on a brand new account is used as an indi-cator of application/subscription fraud, criminals be-gin to lie low and even pay initial bills before ramp-
+ing up spending. After realizing that “calling dens” in
+certain locations had led to models that detect wire-less fraud based on those locations, criminals con-structed roving calling dens (where fraudulent wire-less service was provided in the back of a van that
+drove around the city). This adaptation is problematic
+for the typical information systems development lifecycle (analysis →design→programming →deploy-
+ment→maintenance). At the very least it is necessary
+for models to be able to be changed quickly and fre-
+quently. A more satisfying (but perhaps not yet prac-ticable) solution would be to have a learning system,which can modify its own models in the ongoing armsrace.
+A practical view of the fraud detection elephant
+shows other issues that make fraud detection problemsdifﬁcult. They must be kept in mind if one intendsresults actually to apply to real fraud detection. Sys-tems for fraud detection, in many applications, face
+tremendous computational demands. Transactions ar-
+rive in real time; often only milliseconds (or less) can
+
+STATISTICAL FRAUD DETECTION 251
+be allocated to process each. In this short time, the sys-
+tem must record the transaction in its database, accessrelevant account-speciﬁc data, process the transaction
+and historical data through the fraud detection model
+and create a case, update a case or issue an alarm if
+warranted (and if not, possibly update a customer’s
+proﬁle). Fraud models must be very efﬁcient to apply.Furthermore, the models must be very space efﬁcient.
+Storing a neural network or a decision tree for each
+customer is not feasible for millions of customers; it
+may be possible only to store for each customer a few
+parameters to a general model. Thus, both time andspace constraints argue for simple fraud detection mod-
+els.
+A user perspective of fraud detection (as a mixed-
+initiative process) argues for the use of models that
+are comprehensible to the analysts. For example, formany analysts, rule-based models are easier to inter-
+pret than are neural network models. The set of rules
+that apply to a particular case may guide the subse-
+quent (human) investigation. On the other hand, the
+most commercially successful vendor of fraud detec-
+tion systems (to my knowledge) uses neural networks
+extensively for detecting fraud. Of course, commercialsuccess is a dubious measure of technical quality; how-
+ever, one can get an interesting view into real world
+fraud detection systems by studying HNC Software’s
+patent (Gopinathan et al., 1998). (As of this writing, a
+patent search on keywords “fraud detection” yields 80patents.) In particular, their extensive list of variables,
+created to summarize past activity so that a neural net-
+work can be applied, illustrates the problem engineer-
+ing necessary to transform the fraud detection problem
+into one that is amenable to standard modeling tech-niques.
+It would be useful to have a precise deﬁnition of a
+class (or of several classes) of fraud detection prob-
+lems, which takes into account the variety of charac-
+teristics that make statistical fraud detection difﬁcult.If such a characterization exists already in statistics,
+the machine learning and data mining communities
+would beneﬁt from its introduction. Not knowing of
+one, Tom Fawcett and I attempted to deﬁne one class
+of “activity monitoring” problems and illustrate sev-eral instances (Fawcett and Provost, 1999). Earlier we
+deﬁned “superimposition fraud” (Fawcett and Provost,
+1997a) to try to unify similar forms of wireless tele-
+phone fraud, calling card fraud, credit card fraud, cer-
+tain computer intrusions and so on, where fraudulentusage is superimposed upon legitimate usage and for
+which similar solution methods may apply. However,neither of these captures all of the important character-
+istics.
+The characterization of such a class of problems
+is important for several reasons. First of all, different
+fraud detection problems are considerably similar—itis important to understand how well success of dif-
+ferent techniques generalizes. Is the similarity super-
+ﬁcial? Are there deeper characteristics of the prob-lem or data that must be considered? [This seems to
+be the case, e.g., with classiﬁcation problems (Perlich,
+Provost and Simonoff, 2001).] Also, to succeed at de-
+tecting fraud, different sorts of modeling techniques
+must be composed, for example, temporal patterns maybecome features for a system for estimating class mem-
+bership probabilities, and estimators of class member-
+ship probability could be used in temporal evidencegathering. Furthermore, systems using different solu-
+tion methods should be on equal footing for compari-
+son. Seeming success on any subproblem does not nec-
+essarily imply success on the greater problem. Finally,
+it would be beneﬁcial to focus researchers from manydisciplines, with many complementary techniques, on
+a common, very important set of problems. The juxta-
+position of knowledge and ideas from multiple disci-plines will beneﬁt them all and will be facilitated by
+the precise formulation of a problem of common inter-
+est.
+Of course I am not arguing that research must ad-
+dress all of these criteria simultaneously (immedi-ately), and I am not being strongly critical of prior work
+on fraud detection: we all must abstract away parts of
+such a complicated problem to make progress on oth-
+ers. Nevertheless, it is important that researchers take
+as an ultimate goal the solution to the full problem.We all should consider carefully whether partial solu-
+tions will or will not be extensible. Fraud detection is
+a real, important problem with many real, interestingsubproblems. Bolton and Hand’s review of the state
+of the art shows that there is a lot of room for use-
+ful research. However, the research community should
+make sure that work is progressing toward the solu-
+tion to the larger problem, whether by the developmentof techniques that solve larger portions or by facilitat-
+ing the composition of techniques in a principled man-
+ner.
+ACKNOWLEDGMENT
+Tom Fawcett and I worked very closely on prob-
+lems of fraud detection, and my views have been in-
+ﬂuenced considerably by our discussions and collabo-
+rative work.
+
+252 R. J. BOLTON AND D. J. HAND
+Comment
+Leo Breiman
+This is an enjoyable and illuminating article. It deals
+with an area that few statisticians are aware of, butthat is of critical importance economically and in termsof security. I am appreciative to the authors for theeducation in fraud detection this article gave me andtoStatistical Science for publishing it. There are some
+interesting aspects that make this class of problemsunique and that I comment on, running the risk ofrepeating points made in the article.
+The analysis has to deal with a large number of prob-
+lems simultaneously. For instance, in credit card fraud,the records of millions of customers have to be ana-lyzed one by one to set up individual alarm settings. Itis not a single unsupervised or supervised problem—a multitude of such problems have to be simultane-ously addressed and “solved” for diverse data records.
+Yet the algorithm selected, modulo a few tunable pa-
+rameters, has to be “one size ﬁts all.” Otherwise theon-line computations are not feasible. The alarm bellsettings have to be constantly updated. For instance, ascustomers age and change their economic level and lifestyles, usage characteristics change. There are also se-rious database issues—how to structure the large data-bases so that the incoming streams of data are acces-sible for the kind of analysis necessary. Collaborationwith database experts is essential.
+Most of all, these problems require an uninhibited
+sense of exploration and can be enjoyable adventuresin living with data. The goal is predictive accuracyand the tools are algorithmic models (see Breiman,2001). The class of problems is novel, even in machinelearning. No one tool (neural nets, etc.) is instantlyapplicable to all of these problems. The algorithms
+have to be designed to ﬁt the data. This means
+that an essential part of the venture is immersionin and exploration of the data. My experience isthat good predictive algorithms do not appear by aselection, unguided by the data, from what algorithmsare available. Furthermore, the process is one ofsuccessive informed revision. If an algorithm, forinstance, has too high a false alarm rate, then one has to
+Leo Breiman is Professor, Department of Statistics,
+University of California, Berkeley, California 94720-3860 (e-mail: leo@stat.berkeley.edu)go back to the data and try to understand why the false
+alarm rate is high. Understanding will help to lower thefalse alarm rate.
+The process is an alternation between algorithm and
+data. Personally, if a user reports that an algorithmI have devised gives anomalous results on his dataset, the ﬁrst thing I do is to request that he ship methe data. By running the data myself and trying tounderstand what it is about the data that causes the poor
+performance, I can learn a lot about the deﬁciencies of
+the algorithm and, possibly, improve it. Granted thatwith a changing database running to gigabytes andterrabytes, it may be difﬁcult to look at and understandthe data. However, this should not deter analysts—infact, looking for good ways to display and understandthe data is an essential foundation for the constructionof good algorithms.
+There are other difﬁcult boundary conditions in the
+instances of fraud detection I have looked at. If onetries to design algorithms that use multidimensionalinformation, the problem is that the algorithm maybecome too wrapped in the individual data and thefalse alarm rate rises. However, simple and robust
+algorithms may not utilize enough information to give
+a satisfactory detection rate.
+The choice between supervised and unsupervised
+learning may be difﬁcult and interesting. Assume thatin the database, examples are available of veriﬁed fraudand uncontaminated data. As the authors mention, thecases of veriﬁed fraud in the data are a tiny fraction ofall of the data.
+In detecting credit card fraud, for instance, there
+are two ways to go. The ﬁrst is to consider one user(G.B.S.) and let his weekly purchases be instances ofclass 1. Take all records of a week of fraudulent useand assign them to class 2. Then run a classiﬁcationalgorithm on the two class data constructing a method
+that discriminates between the two classes. Weight the
+probabilities of class 1 and class 2 assignment so as tokeep the false alarm rate down to a preassigned level.Then run the discrimination method on all future weeksof G.B.S.’s purchases.
+This, in machine learning, is called supervised learn-
+ing. It relies on having two labeled classes of instancesto discriminate between. Unsupervised learning occurswhere there are no class labels or responses attached
+
+STATISTICAL FRAUD DETECTION 253
+to the data vectors. Applied to fraud detection, it takes
+all weekly purchases by G.B.S. in the recent past andsummarizes them in a few descriptive statistics. For in-
+stance, one could be total average weekly purchases
+and their standard deviation. If, in the current week,
+the total purchases exceed the average by many stan-
+dard deviations, then an alarm bell goes off—that is,a high suspicion score is recorded.
+My impression is that, where applicable, supervised
+learning will give lower false alarm rates. Think of the
+uncontaminated weekly data for G.B.S. as forming a
+fuzzy ball in high dimensions. Unsupervised learningputs a boundary around this ball and assigns a high
+suspicion score to anything outside of the boundary.
+Supervised learning creates a second fuzzy ball con-
+sisting of fraudulent weekly data and assigns a high
+suspicion score only if the probability of being inclass 2 (fraud) is sufﬁciently higher than being in
+class 1. Data that are outside of the unsupervised
+boundary may not be in the direction of class 2. How-
+ever, the supervised approach makes the assumption
+that future fraudulent data will have the same char-
+acteristics as past fraudulent data and further assumes
+that fraudulent use of the G.B.S. account will result incharacteristics similar to those in the fraudulent use of
+other accounts.
+Fraud detection has some echoes in other areas. For
+instance, in the 1970s, Los Angeles had metal detectors
+buried every
+1
+4mile in every lane in a 17 mile triangular
+section of heavily traveled freeways. Each detector
+produced a signal as a car passed over it, resulting in
+estimates of trafﬁc density and average speed. One goal
+was to use the data from these detectors, channeled
+into a central computer, to give early warning ofaccidents that were blocking the trafﬁc ﬂow. However,
+at the most critical times, when these freeways were
+operating at near capacity trafﬁc, stoppages in trafﬁc
+ﬂow could develop spontaneously. Some sections of
+freeway were more likely to develop stoppages, forexample, a slight upgrade or a curve. A false alarm
+could generate a dispatch of a tow truck, patrol car or
+helicopter. My mission, as a consultant, was to develop
+an algorithm, speciﬁc to each section of freeway, to
+detect accident blockages with high accuracy and lowfalse alarm rate.
+In astronomy, an important problem is to develop
+algorithms that can be applied to the ﬁnely detailed
+pictures of millions of stellar objects and locate those
+that “are unlike anything we’re familiar with to date.”Here “unlike” does not mean bigger or smaller, but
+having different physical characteristics than anythingseen to date. I have thought about this problem from
+time to time, but see no satisfactory solution.
+In a number of ﬁelds a common problem, in both
+supervised and unsupervised learning, is that the num-
+ber of data vectors is large, but the number of class 2
+cases (i.e., fraudulent data vectors) is an extremely
+small fraction of the total. Using human judgment togo over a large database and recognize all class 2 data
+is not feasible. For example, in astronomy, an interest-
+ing class of objects are butterﬂy stars—stars that havea visual picture that resembles a butterﬂy. A project at
+the Lawrence Livermore National Laboratory hoped to
+identify all butterﬂy stars in a gigabyte database re-
+sulting from a sky survey. Working on a small frac-
+tion of the data, a team of astronomers identiﬁed about300 butterﬂy stars.
+The goal of the machine learning group working on
+this project was to identify almost all of the butterﬂy
+stars in the survey while requiring minimal further
+identiﬁcation work by the astronomers. This requiredthe construction of an optimal incremental strategy.
+Use the ﬁrst 300 identiﬁcations to ﬁnd further objects
+with high probability of being butterﬂies, ask theastronomers to say “yes” or “no” on these and then
+repeat using the larger sample.
+The challenges in fraud detection are both formi-
+dable and intriguing. Many of the problems are
+nowhere near solution in terms of satisfactory falsealarm and detection rates. It is an open ﬁeld for the ex-
+ercise of ingenuity, algorithm creation and data snoop-
+ing. It is also a ﬁeld worth billions.
+The authors titled their paper “Statistical Fraud
+Detection,” implying that this area is within the realmof statistics—would that it were—but the number of
+statisticians involved is small. The authors write that
+they are covering a few areas “in which statisticalmethods can be applied.” The list of statistical methods
+that I extracted from the article are
+Neural nets
+Rule-based methods
+Tree-based algorithms
+Genetic algorithmsFuzzy logic
+Mixture models
+Bayesian networks
+Meta-learning
+These were developed in machine learning, not
+statistics (with the exception of mixture models), andlead to algorithmic modeling. Because of the emphasis
+on stochastic data modeling in statistics, very few
+
+254 R. J. BOLTON AND D. J. HAND
+statisticians are familiar with algorithm modeling,
+which is sometimes referred to (with a touch ofprudishness) as “ad hoc.”
+We are ceding some of the most interesting of cur-
+rent statistical problems to computer scientists and en-gineers allied to the machine learning area. Detectionof fraud is an example. Young statisticians need tolearn about algorithmic modeling and how it applies
+to a large variety of statistical problems. The Berke-ley Statistics Department made a move in this direc-tion a few years ago by making a joint appointmentwith the Computer Science Department of an excellentscientist in the machine learning area. We will be doingmore.
+Rejoinder
+Richard J. Bolton and David J. Hand
+We would like to thank the discussants for their
+valuable contributions. They have reinforced some ofour points and also drawn attention to points whichwe glossed over or failed to make. Their contributions
+have signiﬁcantly enhanced the value of the paper.
+We emphasized that many and varied tools would
+be required to attack the fraud detection problem andthis has been echoed by the discussants, who make the
+additional important point that, whatever subproblems
+are identiﬁed, the tools that are adapted or developedto attack them should do so in combination and to thebeneﬁt of the fraud detection process as a whole. The
+message is that fraud detection is greater than the sum
+of its parts and that it can be easy to lose sight of thiswhen dissecting the problem. In a similar vein, Provostalso rightly draws attention to the fact that there are
+additional subtleties in applying even standard tools to
+fraud detection that may not at ﬁrst be apparent. Forexample, his observation that the value of detectionis greater the sooner it is made, but that detection
+becomes easier the more time that has passed. In fact,
+Hand (1996, 1997) suggested that many, if not most,classiﬁcation problems have such concealed subtleties,and that researchers in statistics and machine learning
+have typically extracted only the basic form of the
+problem. So, as tools for classiﬁcation bump againstthe ceiling of the greatest classiﬁcation accuracy thatcan be achieved in practice, so it becomes more and
+more important to take note of these other aspects of
+the problems.
+Both discussants comment on the importance of the
+temporal aspect of fraud. We agree that the incorpora-
+tion of temporal information into the (commonly) sta-
+tic classiﬁcation structure is essential in most cases offraud detection and that further research on tools fortackling this would be of great beneﬁt. Populations
+evolve as people enter and exit them, but the behav-ior of individuals who remain in a population can also
+change. Breiman describes some interesting examplesfrom outside the fraud detection domain which illus-trate that there are other applications where statisti-
+cal research may offer solutions similar to those re-
+quired for fraud detection. One such domain, whichis affected by changing populations, is credit scoring(Kelly, Hand and Adams, 1999). Still on a temporal
+theme, the adaptability of fraud detection tools to the
+changing behavior of fraudsters must be addressed soas to ensure the continued effectiveness of a fraud de-tection system: as new detection strategies are intro-
+duced, so fraudsters will change their behavior accord-
+ingly. Models of behavior can help with this, althoughthe indicators of fraud that are independent of a partic-ular account may require a different strategy.
+We take Breiman’s point that many of the methods
+we described were developed outside the narrow sta-tistical community. However, we had not intended theword “statistical” to refer merely to the stochastic data
+model-based statistics of his recent article (Breiman,
+2001). Rather, we had intended it in the sense of Cham-bers’ “greater statistics” (Chambers, 1993), “every-thing related to learning from data.” Of course, the
+point that Breiman makes, that the tools we have de-
+scribed have not been developed by conventional sta-tisticians, is something of an indictment of statisticians(Hand, 1998).
+We endorse Provost’s conclusion about the impor-
+tance of looking at the full problem. It is all too easyto abstract a component problem and then overreﬁnethe solution to this, way beyond a level which can be
+useful or relevant in the context of the overall problem.
+Conversely, it is all too easy to be misled to a focus on aperipheral or irrelevant aspect of the subproblem. Aca-demic researchers have often been criticized for this in
+other contexts. Of course, the fact is that many of the
+
+STATISTICAL FRAUD DETECTION 255
+subproblems require specialist expertise and specialists
+in a narrow area may ﬁnd it difﬁcult to see the broader
+picture. Moreover, naturally, such specialists will wantto apply their specialist tool: to those who have a ham-mer, everything looks like a nail.
+The discussion contributions have emphasized the
+fact that fraud detection is an important and challeng-ing area for statisticians; indeed, for data analysts ingeneral. Challenging aspects include the large datasets, the fact that one class is typically very small,
+that the data are dynamic and that speedy decisions
+may be very important, that the nature of the fraudschanges over time, often in response to the very de-tection strategies that may be put in place, that there
+may be no training instances and that detecting fraud
+involves multiple interconnected approaches. All ofthese and other aspects mean that collaboration withdata experts, who can provide human insight into the
+underlying processes, is essential.
+ADDITIONAL REFERENCES
+ARONIS ,J .a n dP ROVOST , F. (1997). Increasing the efﬁciency
+of data mining algorithms with breadth-ﬁrst marker propaga-
+tion. In Proceedings of the Third International Conference on
+Knowledge Discovery and Data Mining 119–122. AAAI Press,
+Menlo Park, CA.BREIMAN , L. (2001). Statistical modeling: The two cultures (with
+discussion). Statist. Sci. 16199–231.
+CHAMBERS , J. M. (1993). Greater or lesser statistics: A choice for
+future research. Statist. Comput. 3182–184.
+FAWCETT ,T .a n dP ROVOST , F. (2002). Fraud detection. In Hand-
+book of Knowledge Discovery and Data Mining (W. Kloesgen
+and J. Zytkow, eds.). Oxford Univ. Press.
+FELLEMAN , H., ed. (1936). The Best Loved Poems of the American
+People . Doubleday, New York.
+GOPINATHAN ,K .M . ,B IAFORE ,L .S . ,F ERGUSON ,W .M . ,
+LAZARUS ,M .A . ,P AT HRIA ,A .K .a n dJ OST, A. (1998).
+Fraud detection using predictive modeling. U.S. Patent5819226, October 6.
+H
+AND , D. J. (1996). Classiﬁcation and computers: Shifting the fo-
+cus. In COMPSTAT-96 :Proceedings in Computational Statis-
+tics(A. Prat, ed.) 77–88. Physica, Heidelberg.
+HAND , D. J. (1998). Breaking misconceptions—statistics and its
+relationship to mathematics (with discussion). The Statistician
+47245–250, 284–286.
+KELLY ,M .G . ,H AND ,D .J .a n dA DAMS , N. M. (1999). The
+impact of changing populations on classiﬁer performance.InProceedings of the Fifth ACM SIGKDD International
+Conference on Knowledge Discovery and Data Mining (S.
+Chaudhuri and D. Madigan, eds.) 367–371. ACM Press, NewYork.
+P
+ERLICH ,C . ,P ROVOST ,F .a n dS IMONOFF , J. S. (2001). Tree
+induction vs. logistic regression: A learning-curve analysis.
+Journal of Machine Learning Research . To appear.
+

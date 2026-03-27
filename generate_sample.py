@@ -47,4 +47,4 @@ df = df.sample(frac=1, random_state=42).reset_index(drop=True)
 output_path = os.path.join(os.path.dirname(__file__), "sample_creditcard.csv")
 df.to_csv(output_path, index=False)
 
-print(f"✅ Generated sample dataset saved to: {output_path}")
+print(f"[OK] Generated sample dataset saved to: {output_path}")

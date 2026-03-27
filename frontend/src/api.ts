@@ -1,4 +1,4 @@
-const API = '';
+const API = import.meta.env.VITE_API_URL || '';
 
 export interface DashboardStats {
   total_predictions: number;
@@ -231,7 +231,8 @@ export async function exportCSV() {
   a.href = url;
   a.download = 'predictions_export.csv';
   a.click();
-  URL.revokeObjectURL(url);
+  // Delay URL revocation to ensure download starts
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 export async function fetchHealth() {
@@ -240,14 +241,26 @@ export async function fetchHealth() {
 }
 
 export function createTrainingWebSocket(
-  onMessage: (data: { model: string; message: string; progress: number }) => void
+  onMessage: (data: { model: string; message: string; progress: number }) => void,
+  onError?: (error: Event) => void,
+  onClose?: (event: CloseEvent) => void
 ): WebSocket {
   const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
   const ws = new WebSocket(`${protocol}//${window.location.host}/ws/training`);
   ws.onmessage = (ev) => {
     try {
       onMessage(JSON.parse(ev.data));
-    } catch { /* ignore */ }
+    } catch {
+      console.error('Failed to parse WebSocket message');
+    }
+  };
+  ws.onerror = (error) => {
+    console.error('WebSocket error:', error);
+    onError?.(error);
+  };
+  ws.onclose = (event) => {
+    console.log('WebSocket closed:', event.code, event.reason);
+    onClose?.(event);
   };
   return ws;
 }

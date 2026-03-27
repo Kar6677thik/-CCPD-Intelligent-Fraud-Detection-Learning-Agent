@@ -1,0 +1,671 @@
+TheRelationship BetweenPrecision-Recall andROCCurves
+Jesse Davis jdavis@cs.wisc.edu
+Mark Goadric h richm@cs.wisc.edu
+Departmen tofComputer Sciences andDepartmen tofBiostatistics andMedical Informatics, Universityof
+Wisconsin-Madison, 1210WestDaytonStreet, Madison, WI,53706 USA
+Abstract
+Receiv erOperator Characteristic (ROC)
+curvesarecommonly used topresen tre-
+sults forbinary decision problems inma-
+chine learning. However,when dealing
+withhighly skeweddatasets, Precision-Recall
+(PR) curvesgiveamore informativ epicture
+ofanalgorithm's performance. Weshowthat
+adeepconnection exists betweenROCspace
+andPRspace, suchthatacurvedominates
+inROCspace ifandonlyifitdominates
+inPRspace. Acorollary isthenotion of
+anachievablePRcurve,whichhasproper-
+tiesmuchliketheconvexhullinROCspace;
+weshowanecien talgorithm forcomputing
+thiscurve.Finally ,wealsonotedierences
+inthetwotypesofcurvesaresignican tfor
+algorithm design. Forexample, inPRspace
+itisincorrect tolinearly interpolatebetween
+points.Furthermore, algorithms thatopti-
+mizetheareaunder theROCcurvearenot
+guaran teedtooptimize theareaunder the
+PRcurve.
+1.Introduction
+Inmachinelearning, curren tresearc hhasshifted away
+fromsimply presen tingaccuracy results when perform-
+inganempirical validation ofnewalgorithms. Thisis
+especially truewhen evaluating algorithms thatoutput
+probabilities ofclassvalues. Provostetal.(1998) have
+argued thatsimply using accuracy results canbemis-
+leading. They recommended when evaluating binary
+decision problems touseReceiv erOperator Character-
+istic(ROC)curves,whichshowhowthenumberofcor-
+rectly classied positiveexamples varieswiththenum-
+berofincorrectly classied negativ eexamples. How-
+ever,ROCcurvescanpresen tanoverlyoptimistic view
+ofanalgorithm's performance ifthere isalargeskew
+Appearing inProceedings ofthe23rdInternational Con-
+ferenceonMachine Learning ,Pittsburgh, PA,2006. Copy-
+right2006bytheauthor(s)/o wner(s).intheclassdistribution. Drummond andHolte (2000;
+2004) haverecommended using costcurvestoaddress
+thisissue. Costcurvesareanexcellen talternativ eto
+ROCcurves,butdiscussing them isbeyondthescope
+ofthispaper.
+Precision-Recall (PR) curves,often usedinInforma-
+tionRetriev al(Manning &Schutze, 1999; Ragha van
+etal.,1989), havebeencitedasanalternativ etoROC
+curvesfortasks withalarge skewintheclass dis-
+tribution (Bockhorst &Craven,2005; Bunescu etal.,
+2004; Davisetal.,2005; Goadric hetal.,2004; Kok&
+Domingos, 2005; Singla &Domingos, 2005). Anim-
+portantdierence betweenROCspace andPRspace
+isthevisual represen tation ofthecurves.Looking
+atPRcurvescanexposedierences betweenalgo-
+rithms thatarenotapparen tinROCspace. Sample
+ROCcurvesandPRcurvesareshowninFigures 1(a)
+and1(b)respectively.These curves,takenfromthe
+samelearned modelsonahighly-sk ewedcancer detec-
+tiondataset, highligh tthevisual dierence between
+these spaces (Davisetal.,2005). ThegoalinROC
+space istobeintheupper-left-hand corner, andwhen
+onelooksattheROCcurvesinFigure 1(a)theyap-
+peartobefairly closetooptimal. InPRspace the
+goalistobeintheupper-righ t-hand corner, andthe
+PRcurvesinFigure 1(b)showthatthere isstillvast
+roomforimpro vement.
+Theperformances ofthealgorithms appeartobecom-
+parable inROCspace, however,inPRspace wecan
+seethatAlgorithm 2hasaclearadvantageoverAlgo-
+rithm 1.Thisdierence exists because inthisdomain
+thenumberofnegativ eexamples greatly exceeds the
+numberofpositivesexamples. Consequen tly,alarge
+change inthenumberoffalsepositivescanleadtoa
+small change inthefalsepositiverateusedinROC
+analysis. Precision, ontheother hand, bycomparing
+falsepositivestotruepositivesrather thantrueneg-
+atives,captures theeect ofthelargenumberofneg-
+ativeexamples onthealgorithm's performance. Sec-
+tion2denes Precision andRecall forthereader un-
+familiar withthese terms.
+Webelieveitisimportanttostudy theconnection be-
+233
+
+
+TheRelationship BetweenPrecision-Recall andROCCurves
+ 0 0.2 0.4 0.6 0.8 1
+ 0 0.2 0.4 0.6 0.8 1True Positive Rate
+False Positive RateAlgorithm 1
+Algorithm 2
+(a)Comparison inROCspace 0 0.2 0.4 0.6 0.8 1
+ 0 0.2 0.4 0.6 0.8 1Precision
+RecallAlgorithm 1
+Algorithm 2
+(b)Comparison inPRspace
+Figure 1.Thedierence betweencomparing algorithms inROCvsPRspace
+tweenthese twospaces, andwhether some ofthein-
+teresting properties ofROCspace alsoholdforPR
+space. Weshowthatforanydataset, andhence a
+xed numberofpositiveandnegativ eexamples, the
+ROCcurveandPRcurveforagivenalgorithm con-
+tainthe\same points."Therefore thePRcurvesfor
+Algorithm IandAlgorithm IIinFigure 1(b)are,ina
+sense thatweformally dene, equivalenttotheROC
+curvesforAlgorithm IandAlgorithm II,respectively
+inFigure 1(a).Based onthisequivalence forROCand
+PRcurves,weshowthatacurvedominates inROC
+space ifandonlyifitdominates inPRspace. Sec-
+ond,weintroducethePRspace analog totheconvex
+hullinROCspace, whichwecalltheachievablePR
+curve.Weshowthatduetotheequivalence ofthese
+twospaces wecanecien tlycompute theachievable
+PRcurve.Third wedemonstrate thatinPRspace
+itisinsucien ttolinearly interpolatebetweenpoints.
+Finally ,weshowthatanalgorithm thatoptimizes the
+areaunder theROCcurveisnotguaran teedtoopti-
+mizetheareaunder thePRcurve.
+2.Review ofROCandPrecision-Recall
+Inabinary decision problem, aclassier labelsex-
+amples aseither positiveornegativ e.Thedecision
+made bytheclassier canberepresen tedinastruc-
+tureknownasaconfusion matrix orcontingency ta-
+ble.Theconfusion matrix hasfourcategories: True
+positives(TP) areexamples correctly labeledasposi-
+tives.Falsepositives(FP)refertonegativ eexamples
+incorrectly labeledaspositive.Truenegativ es(TN)
+corresp ondtonegativ escorrectly labeledasnegativ e.
+Finally ,falsenegativ es(FN)refertopositiveexamples
+incorrectly labeledasnegativ e.Aconfusion matrix isshowninFigure 2(a).Thecon-
+fusion matrix canbeusedtoconstruct apointineither
+ROCspace orPRspace. Giventheconfusion matrix,
+weareabletodene themetrics usedineachspace
+asinFigure 2(b). InROCspace, oneplotstheFalse
+PositiveRate(FPR) onthex-axisandtheTruePos-
+itiveRate(TPR) onthey-axis. TheFPRmeasures
+thefraction ofnegativ eexamples thataremisclassi-
+edaspositive.TheTPR measures thefraction of
+positiveexamples thatarecorrectly labeled. InPR
+space, oneplotsRecall onthex-axisandPrecision on
+they-axis. Recall isthesame asTPR, whereas Pre-
+cision measures thatfraction ofexamples classied as
+positivethataretruly positive.Figure 2(b)givesthe
+denitions foreachmetric. Wewilltreatthemetrics
+asfunctions thatactontheunderlying confusion ma-
+trixwhichdenes apointineither ROCspace orPR
+space. Thus,givenaconfusion matrix A,RECALL(A)
+returns theRecall associated withA.
+3.Relationship betweenROCSpace
+andPRSpace
+ROCandPRcurvesaretypically generated toevalu-
+atetheperformance ofamachinelearning algorithm
+onagivendataset. Eachdataset containsaxednum-
+berofpositiveandnegativ eexamples. Weshowhere
+thatthereexists adeeprelationship betweenROCand
+PRspaces.
+Theorem 3.1.Foragiven dataset ofpositive and
+negative examples, thereexistsaone-to-one correspon-
+dencebetweenacurveinROCspaceandacurveinPR
+space,suchthatthecurves contain exactly thesame
+confusion matric es,ifRecall6=0.
+234
+
+
+TheRelationship BetweenPrecision-Recall andROCCurves
+actual actual
+positivenegativ e
+predicted positive TP FP
+predicted negativ eFN TN
+(a)Confusion MatrixRecall =TP
+TP+FN
+Precision =TP
+TP+FP
+TruePositiveRate =TP
+TP+FN
+FalsePositiveRate =FP
+FP+TN
+(b)Denitions ofmetrics
+Figure 2.Common machinelearning evaluation metrics
+Proof.Note thatapointinROCspace denes a
+unique confusion matrix when thedataset isxed.
+Since inPRspace weignore FN,onemightworry
+thateachpointmaycorresp ondtomultiple confusion
+matrices. However,withaxed numberofpositive
+andnegativ eexamples, giventheother three entries
+inamatrix, FNisuniquely determined. IfRecall =
+0,weareunable torecoverFP,andthuscannot nd
+aunique confusion matrix.
+Consequen tly,wehaveaone-to-one mapping between
+confusion matrices andpointsinPRspace. Thisim-
+pliesthatwealsohaveaone-to-one mapping between
+points(eachdened byaconfusion matrix) inROC
+space andPRspace; hence, wecantranslate acurve
+inROCspace toPRspace andvice-v ersa.
+Oneimportantdenition weneedforournexttheorem
+isthenotion thatonecurvedominates another curve,
+\meaning thatallother...curv esarebeneath itorequal
+toit(Provostetal.,1998)."
+Theorem 3.2.Foraxednumberofpositive andneg-
+ativeexamples, onecurvedominates asecondcurvein
+ROCspaceifandonlyiftherstdominates thesecond
+inPrecision-R ecallspace.
+Proof.
+Claim 1()):Ifacurvedominates inROC
+space thenitdominates inPRspace .Proofby
+contradiction. SupposewehavecurveIandcurveII
+(asshowninFigure 3)suchthatcurveIdominates
+inROCspace, yet,oncewetranslate these curvesin
+PRspace, curveInolonger dominates. Since curve
+Idoesnotdominate inPRspace, there exists some
+pointAoncurveIIsuchthatthepointBoncurve
+IwithidenticalRecall haslowerPrecision. Inother
+words, PRECISION(A)>PRECISION(B)
+yetRECALL(A)=RECALL(B). Since
+RECALL(A)=RECALL(B)andRecall isiden-
+ticaltoTPR,wehavethatTPR(A)=TPR(B).
+Since curveIdominates curveIIinROCspaceFPR(A)FPR(B).Remem berthattotal pos-
+itivesand total negativ esarexed and since
+TPR(A)=TPR(B):
+TPR(A)=TPA
+TotalPositives
+TPR(B)=TPB
+TotalPositives
+wenowhaveTPA=TPBandthusdenote bothas
+TP.Remem berthatFPR(A)FPR(B)and
+FPR(A)=FPA
+TotalNegativ es
+FPR(B)=FPB
+TotalNegativ es
+Thisimplies thatFPAFPBbecause
+PRECISION(A)=TP
+FPA+TP
+PRECISION(B)=TP
+FPB+TP
+wenowhavethat PRECISION(A)
+PRECISION(B). But this contradicts our
+original assumption that PRECISION(A)>
+PRECISION(B).
+Claim 2(():Ifacurvedominates inPRspace
+thenitdominates inROCspace. Proofbycon-
+tradiction. SupposewehavecurveIandcurveII(as
+showninFigure 4)suchthatcurveIdominates curveII
+inPRspace, butoncetranslated inROCspace curveI
+nolonger dominates. Since curveIdoesnotdominate
+inROCspace, there exists some pointAoncurveII
+suchthatpointBoncurveIwithidenticalTPRyet
+FPR(A)<TPR(B).Since RECALLandTPRare
+thesame, wegetthatRECALL(A)=RECALL(B).
+Because curveIdominates inPRspace weknowthat
+PRECISION(A)PRECISION(B).Remem ber
+235
+
+
+TheRelationship BetweenPrecision-Recall andROCCurves
+ 0 0.2 0.4 0.6 0.8 1
+ 0 0.2 0.4 0.6 0.8 1True Positive Rate
+False Positive Rate A  B
+Curve I
+Curve II
+(a)Case1:FPR(A)>FPR(B) 0 0.2 0.4 0.6 0.8 1
+ 0 0.2 0.4 0.6 0.8 1True Positive Rate
+False Positive Rate B = A
+Curve I
+Curve II
+(b)Case2:FPR(A)=FPR(B)
+Figure 3.Twocases forClaim 1ofTheorem 3.2
+ 0 0.2 0.4 0.6 0.8 1
+ 0 0.2 0.4 0.6 0.8 1Precision
+Recall B
+ ACurve I
+Curve II
+(a)Case1:PRECISION(A)<
+PRECISION(B) 0 0.2 0.4 0.6 0.8 1
+ 0 0.2 0.4 0.6 0.8 1Precision
+RecallB = ACurve I
+Curve II
+(b)Case2:PRECISION(A)=
+PRECISION(B)
+Figure 4.Twocases ofClaim 2ofTheorem 3.2
+thatRECALL(A)=RECALL(B)and
+RECALL(A)=TPA
+TotalPositives
+RECALL(B)=TPB
+TotalPositives
+WeknowthatTPA=TPB,sowewillnowdenote
+them simply asTP.Because PRECISION(A)
+PRECISION(B)and
+PRECISION(A)=TP
+TP+FPA
+PRECISION(B)=TP
+TP+FPBwendthatFPAFPB.Nowwehave
+FPR(A)=FPA
+TotalNegativ es
+FPR(B)=FPB
+TotalNegativ es
+Thisimplies thatFPR(A)FPR(B)andthiscon-
+tradicts ouroriginal assumption thatFPR(A)<
+FPR(B):
+InROCspace theconvexhullisacrucial idea.Given
+asetofpointsinROCspace, theconvexhullmust
+meetthefollowingthree criteria:
+1.Linear interpolation isused betweenadjacen t
+points.
+2.Nopointliesabovethenalcurve.
+236
+
+
+TheRelationship BetweenPrecision-Recall andROCCurves
+ 0 0.2 0.4 0.6 0.8 1
+ 0 0.2 0.4 0.6 0.8 1True Positive Rate
+False Positive Rate
+(a)ConvexhullinROCspace 0 0.2 0.4 0.6 0.8 1
+ 0 0.2 0.4 0.6 0.8 1True Positive Rate
+False Positive Rate
+(b)CurvesinROCspace 0 0.2 0.4 0.6 0.8 1
+ 0 0.2 0.4 0.6 0.8 1Precision
+Recall
+(c)Equiv alentcurvesinPRspace
+Figure 5.ConvexhullanditsPRanalog dominate thenavemetho dforcurveconstruction ineachspace. Notethatthis
+achievablePRcurveisnotatrueconvexhullduetonon-linear interpolation. Linear interpolation inPRspace istypically
+notachievable.
+3.Foranypairofpointsusedtoconstruct thecurve,
+thelinesegmen tconnecting them isequal toor
+belowthecurve.
+Figure 5(a)showsanexample ofaconvexhullinROC
+space. Foradetailed algorithm ofhowtoecien tly
+construct theconvexhull,seeCormen etal.(1990).
+InPRspace, there exists ananalogous curvetothe
+convexhullinROCspace, whichwecalltheachievable
+PRcurve,although itcannot beachievedbylinear
+interpolation. Theissueofdominance inROCspace
+isdirectly related tothisconvexhullanalog.
+Corollary 3.1.Given asetofpointsinPRspace,
+thereexistsanachievable PRcurvethatdominates the
+othervalidcurves thatcouldbeconstructe dwiththese
+points.
+Proof.First, convertthepointsintoROCspace
+(Theorem 3.1),andconstruct theconvexhullofthese
+pointsinROCspace. Bydenition, theconvexhull
+dominates allother curvesthatcould beconstructed
+withthose pointswhen using linear interpolation be-
+tweenthepoints.Thusconverting thepointsofthe
+ROCconvexhullbackintoPRspace willyieldacurve
+thatdominates inPRspace asshowninFigures 5(b)
+and5(c).ThisfollowsfromTheorem 3.2.Theachiev-
+ablePRcurvewillexclude exactly those pointsbe-
+neath theconvexhullinROCspace.
+TheconvexhullinROCspace isthebestlegalcurve
+thatcanbeconstructed from asetofgivenROC
+points.Manyresearc hers, ourselv esincluded, argue
+thatPRcurvesarepreferable when presen tedwith
+highly-sk eweddatasets. Therefore itissurprising thatwecanndtheachievablePRcurve(thebestlegal
+PRcurve)byrstcomputing theconvexhullinROC
+space andtheconverting thatcurveintoPRspace.
+Thusthebestcurveinonespace givesyouthebest
+curveintheother space.
+Animportantmetho dological issuemustbeaddressed
+when building aconvexhullinROCspace oran
+achievablecurveinPRspace. When constructing a
+ROCcurve(orPRcurve)fromanalgorithm thatout-
+putsaprobabilit y,thefollowingapproac hisusually
+taken:rstndtheprobabilit ythateachtestsetex-
+ample ispositive,nextsortthislistandthentraverse
+thesorted listinascending order. Tosimplify thedis-
+cussion, letclass(i)refertothetrueclassication of
+theexample atposition iinthearrayandprob(i)re-
+fertotheprobabilit ythattheexample atposition iis
+positive.Foreachisuchthatclass(i)6=class(i+1)
+andprob(i)<prob(i+1),create aclassier bycalling
+everyexample jsuchthatji+1positiveandall
+other examples negativ e.
+ThuseachpointinROCspace orPRspace represen ts
+aspecic classier, withathreshold forcalling anex-
+ample positive.Building theconvexhullcanbeseen
+asconstructing anewclassier, asonepicksthebest
+points.Therefore itwouldbemetho dologically incor-
+recttoconstruct aconvexhullorachievablePRcurve
+bylooking atperformance onthetestdataandthen
+constructing aconvexhull.Tocombatthisproblem,
+theconvexhullmustbeconstructed using atuning set
+asfollows:First, usethemetho ddescrib edaboveto
+ndacandidate setofthresholds onthetuning data.
+Then, buildaconvexhulloverthetuning data. Finally
+usethethresholds selected onthetuning data, when
+237
+
+
+TheRelationship BetweenPrecision-Recall andROCCurves
+building anROCorPRcurveforthetestdata. While
+thistest-data curveisnotguaran teedtobeaconvex
+hull,itpreserv esthesplitbetweentraining dataand
+testing data.
+4.Interpolation andAUC
+Akeypractical issuetoaddress ishowtointerpolate
+betweenpointsineachspace. Itisstraigh tforward
+tointerpolate betweenpointsinROCspace bysim-
+plydrawingastraigh tlineconnecting thetwopoints.
+Onecanachieveanylevelofperformance onthisline
+byipping aweightedcointodecide betweentheclas-
+siers thatthetwoendpointsrepresen t.
+However,inPrecision-Recall space, interpolation is
+more complicated. AsthelevelofRecall varies, the
+Precision doesnotnecessarily change linearly dueto
+thefactthatFPreplaces FNinthedenominator of
+thePrecision metric. Inthese cases, linear interpola-
+tionisamistak ethatyields anoverly-optimistic es-
+timate ofperformance. Corollary 3.1showshowto
+ndtheachievablePRcurvebysimply converting the
+analogous ROCconvexhull;thisyields thecorrect in-
+terpolation inPRspace. However,acurveconsists of
+innitely manypoints,andthusweneedapractical,
+approximate metho dfortranslation. Weexpand here
+onthemetho dproposedbyGoadric hetal.(2004) to
+approximate theinterpolation betweentwopointsin
+PRspace.
+Remem berthatanypointAinaPrecision-Recall
+space isgenerated fromtheunderlying truepositive
+(TPA)andfalsepositive(FPA)counts.Supposewe
+havetwopoints,AandBwhicharefarapart in
+Precision-Recall space. Tondsomeintermediate val-
+ues,wemustinterpolate betweentheir countsTPA
+andTPB,andFPAandFPB.Wendouthowmany
+negativ eexamples ittakestoequal onepositive,orthe
+localskew,dened byFPB FPA
+TPB TPA.Nowwecancreate
+newpointsTPA+xforallintegervaluesofxsuchthat
+1xTPB TPA,i.e.TPA+1;TPA+2;:::;TPB 1,
+andcalculate corresp onding FPbylinearly increasing
+thefalsepositivesforeachnewpointbythelocalskew.
+Ourresulting intermediate Precision-Recall pointswill
+be
+ 
+TPA+x
+TotalPos;TPA+x
+TPA+x+FPA+FPB FPA
+TPB TPAx!
+:
+Forexample, supposewehaveadataset with20posi-
+tiveexamples and2000negativ eexamples. LetTPA=
+5,FPA=5,TPB=10,andFPB=30.Table1shows
+theproperinterpolation oftheintermediate pointsbe-
+tweenAandB,withthelocalskewof5negativ esforTable1.Correct interpolation betweentwopointsinPR
+space foradataset with20positiveand2000negativ eex-
+amples
+TP FP REC PREC
+A5 50.25 0.500
+.610 0.30 0.375
+.715 0.35 0.318
+.820 0.40 0.286
+.925 0.45 0.265
+B10 30 0.50 0.250
+ 0 0.2 0.4 0.6 0.8 1
+ 0 0.2 0.4 0.6 0.8 1Precision
+RecallCorrect
+Incorrect
+Figure 6.Theeect ofincorrect interpolation inPRspace
+every1positive.Notice howtheresulting Precision
+interpolation isnotlinear between0.50and0.25.
+Often, theareaunder thecurveisusedasasimple
+metric todene howanalgorithm performs overthe
+whole space (Bradley ,1997; Davisetal.,2005; Goad-
+richetal.,2004; Kok&Domingos, 2005; Macsk assy
+&Provost,2005; Singla &Domingos, 2005). Thearea
+under theROCcurve(AUC-R OC)canbecalculated
+byusing thetrapezoidal areas created betweeneach
+ROCpoint,andisequivalenttotheWilco xon-Mann-
+Whitney statistic (Cortes &Mohri, 2003). Byinclud-
+ingourintermediate PRpoints,wecannowusethe
+compositetrapezoidal metho dtoapproximate thearea
+under thePRcurve(AUC-PR).
+Theeect ofincorrect interpolation ontheAUC-PR
+isespecially pronounced when twopointsarefaraway
+inRecall andPrecision andthelocalskewishigh.
+Consider acurve(Figure 6)constructed fromasin-
+glepointof(0:02;1),andextended totheendpoints
+of(0;1)and(1;0:008)asdescrib edabove(forthisex-
+ample, ourdataset contains433positivesand56,164
+negativ es).Interpolating aswehavedescrib edwould
+haveanAUC-PR of0.031; alinear connection would
+severelyoverestimate withanAUC-PR of0.50.
+Nowthatwehavedevelopedinterpolation forPR
+space, wecangivethecomplete algorithm fornd-
+238
+
+
+TheRelationship BetweenPrecision-Recall andROCCurves
+ 0 0.2 0.4 0.6 0.8 1
+ 0 0.2 0.4 0.6 0.8 1True Positive Rate
+False Positive RateCurve I
+Curve II
+(a)Comparing AUC-R OCfor
+twoalgorithms 0 0.2 0.4 0.6 0.8 1
+ 0 0.2 0.4 0.6 0.8  1Precision
+RecallCurve I
+Curve II
+(b)Comparing AUC-PR fortwo
+algorithms
+Figure 7.Dierence inoptimizing areaunder thecurveineachspace
+ingtheachievablePRcurve.First, wendtheconvex
+hullinROCspace (Corollary 3.1).Next, foreachpoint
+selected bythealgorithm tobeincluded inthehull,
+weusetheconfusion matrix thatdenes thatpointto
+construct thecorresp onding pointinPRspace (Theo-
+rem3.1).Finally ,weperform thecorrect interpolation
+betweenthenewly created PRpoints.
+5.Optimizing AreaUnder theCurve.
+Severalresearc hershaveinvestigated using AUC-R OC
+toinform thesearchheuristics oftheir algorithms.
+Ferrietal.(2002) alter decision trees tousethe
+AUC-R OCastheir splitting criterion, Cortes and
+Mohri (2003) showthattheboosting algorithm Rank-
+Boost(Freund etal.,1998) isalsowell-suited toopti-
+mizetheAUC-R OC,Joachims(2005) presen tsagen-
+eralization ofSupportVectorMachines whichcanop-
+timize AUC-R OCamong other ranking metrics, Prati
+andFlach(2005) usearuleselection algorithm todi-
+rectly create theconvexhullinROCspace, andboth
+Yanetal.(2003) andHerschtalandRaskutti (2004)
+explore waystooptimize theAUC-R OCwithin neural
+networks. Also, ILPalgorithms suchasAleph (Srini-
+vasan, 2003) canbechanged touseheuristics related
+toROCorPRspace, atleastinrelation toanindi-
+vidual rule.
+Knowing thataconvexhullinROCspace canbe
+translated intotheachievablecurveinPrecision-Recall
+space leads toanother openquestion: doalgorithms
+whichoptimize theAUC-R OCalsooptimize theAUC-
+PR?Unfortunately ,theanswergenerally isno,and
+weprovethisbythefollowingcounter-example. Fig-
+ure7(a)showstwooverlapping curvesinROCspace
+foradomain with20positiveexamples and2000neg-ativeexamples, where eachcurveindividually isacon-
+vexhull.TheAUC-R OCforcurveIis0.813 andthe
+AUC-R OCforcurveIIis0.875, soanalgorithm opti-
+mizing theAUC-R OCandchoosingbetweenthesetwo
+rankings wouldchoosecurveII.However,Figure 7(b)
+showsthesame curvestranslated intoPRspace, and
+thedierence hereisdrastic. TheAUC-PR forcurve
+Iisnow0.514 duetothehighranking ofoverhalf
+ofthepositiveexamples, while theAUC-PR forcurve
+IIisfarlessat0.038, sothedirect oppositechoice of
+curveIshould bemade tooptimize theAUC-PR. This
+isbecause inPRspace themain contribution comes
+fromachieving alowerRecall range withhigher Preci-
+sion.Nevertheless, based onTheorem 3.2ROCcurves
+areuseful inanalgorithm thatoptimizes AUC-PR.
+Analgorithm canndtheconvexhullinROCspace,
+convertthatcurvetoPRspace foranachievablePR
+curve,andscore theclassier bytheareaunder this
+achievablePRcurve.
+6.Conclusions
+Thisworkmakesfourimportantcontributions. First,
+foranydataset, theROCcurveandPRcurvefora
+givenalgorithm containthesame points.Thisequiv-
+alence, leads tothesurprising theorem thatacurve
+dominates inROCspace ifandonlyifitdominates in
+PRspace. Second, asacorollary tothetheorem we
+showtheexistence ofthePRspace analog tothecon-
+vexhullinROCspace, whichwecallanachievablePR
+curve.Remark ably,when constructing theachievable
+PRcurveonediscards exactly thesame pointsomit-
+tedbytheconvexhullinROCspace. Consequen tly,
+wecanecien tlycompute theachievablePRcurve.
+Third, weshowthatsimple linear interpolation isin-
+sucien tbetweenpointsinPRspace. Finally ,weshow
+239
+
+
+TheRelationship BetweenPrecision-Recall andROCCurves
+thatanalgorithm thatoptimizes theareaunder the
+ROCcurveisnotguaran teedtooptimize theareaun-
+derthePRcurve.
+Acknowledgemen ts
+AJavaprogram for calculating all of
+the discussed metrics can befound at
+http://www.cs.wi sc.edu/~richm/programs/AUC/.
+Wegratefully acknowledge thefunding from USA
+NLM Grant5T15LM007359-02 andUSA AirForce
+GrantF30602-01-2-0571 ,VtorSantosCosta, Louis
+Oliphan t,ouradvisors DavidPageandJude Shav-
+likandouranonymous review ersfortheir helpful
+commen tsandsuggestions.
+References
+Bockhorst, J.,&Craven,M.(2005). Markovnetworksfor
+detecting overlapping elemen tsinsequence data.Neural
+Information Processing Systems 17(NIPS) .MITPress.
+Bradley ,A.(1997). Theuseoftheareaunder theROC
+curveintheevaluation ofmachinelearning algorithms.
+Pattern Recognition ,30,1145{1159.
+Bunescu, R.,Ge,R.,Kate, R.,Marcotte, E.,Mooney,R.,
+Ramani, A.,&Wong,Y.(2004). Comparativ eExperi-
+mentsonLearning Information Extractors forProteins
+andtheirInteractions. Journal ofArticial Intelligence
+inMedicine ,139{155.
+Cormen, T.H.,Leiserson, Charles, E.,&Rivest,R.L.
+(1990). Introduction toalgorithms .MITPress.
+Cortes, C.,&Mohri, M.(2003). AUCoptimization vs.
+errorrateminimization. NeuralInformation Processing
+Systems 15(NIPS) .MITPress.
+Davis,J.,Burnside, E.,Dutra, I.,Page,D.,Ramakrishnan,
+R.,Costa, V.S.,&Shavlik,J.(2005). View learning
+forstatistical relational learning: With anapplication
+tomammograph y.Proceedingofthe19thInternational
+JointConfer enceonArticial Intelligence.Edinburgh,
+Scotland.
+Drummond, C.,&Holte, R.(2000). Explicitly represen ting
+expected cost: analternativ etoROCrepresen tation.
+ProceedingofKnowledgeDiscoveryandDatamining (pp.
+198{207).
+Drummond, C.,&Holte, R.C.(2004). What ROCcurves
+can't do(andcostcurvescan).ROCAI (pp.19{26).
+Ferri,C.,Flach,P.,&Henrandez-Orallo, J.(2002). Learn-
+ingdecision treesusing areaunder theROCcurve.Pro-
+ceedings ofthe19thInternational Confer enceonMa-
+chineLearning (pp.139{146). Morgan Kaufmann.
+Freund, Y.,Iyer,R.,Schapire, R.,&Singer, Y.(1998). An
+ecien tboosting algorithm forcombining preferences.
+Proceedingsofthe15thInternational Confer enceonMa-
+chine Learning (pp.170{178). Madison, US:Morgan
+Kaufmann Publishers, SanFrancisco, US.Goadric h,M.,Oliphan t,L.,&Shavlik,J.(2004). Learn-
+ingensem blesofrst-order clauses forrecall-precision
+curves:Acasestudy inbiomedical information extrac-
+tion. Proceedings ofthe14thInternational Confer ence
+onInductive LogicProgramming (ILP) .Porto,Portugal.
+Herschtal,A.,&Raskutti, B.(2004). Optimising areaun-
+dertheROCcurveusing gradien tdescen t.Proceedings
+ofthe21stInternational Confer enceonMachine Learn-
+ing(p.49).NewYork,NY,USA: ACMPress.
+Joachims, T.(2005). Asupportvector metho dformulti-
+variate performance measures. Proceedingsofthe22nd
+International Confer enceonMachine Learning .ACM
+Press.
+Kok,S.,&Domingos, P.(2005). Learning thestructure of
+MarkovLogic Networks. Proceedings of22ndInterna-
+tional Confer enceonMachine Learning (pp.441{448).
+ACMPress.
+Macsk assy,S.,&Provost,F.(2005). Suspicion scoring
+based onguilt-b y-asso ciation, collectiv einference, and
+focused dataaccess. International Confer enceonIntel-
+ligenceAnalysis .
+Manning, C.,&Schutze,H.(1999). Foundations ofstatis-
+ticalnaturallanguage processing .MITPress.
+Prati, R.,&Flach,P.(2005). ROCCER: analgorithm for
+rulelearning based onROCanalysis. Proceedingofthe
+19thInternational JointConfer enceonArticial Intel-
+ligence.Edinburgh, Scotland.
+Provost,F.,Fawcett,T.,&Kohavi,R.(1998). Thecase
+against accuracy estimation forcomparing induction al-
+gorithms. Proceedingofthe15thInternational Confer-
+enceonMachine Learning (pp.445{453). Morgan Kauf-
+mann, SanFrancisco, CA.
+Ragha van,V.,Bollmann, P.,&Jung, G.S.(1989). A
+critical investigation ofrecall andprecision asmeasures
+ofretriev alsystem performance. ACMTrans.Inf.Syst.,
+7,205{229.
+Singla, P.,&Domingos, P.(2005). Discriminativ etraining
+ofMarkovLogic Networks.Proceedingsofthe20thNa-
+tional Confer enceonArticial Intelligene (AAAI) (pp.
+868{873). AAAI Press.
+Sriniv asan, A.(2003). The Aleph ManualVersion
+4.http://web.c omlab.ox.ac.uk/ oucl/ research/areas/
+machle arn/Aleph/.
+Yan,L.,Dodier,R.,Mozer, M.,&Wolniewicz, R.(2003).
+Optimizing classier performance viatheWilcoxon-
+Mann-Whitney statistics. Proceedings ofthe20thIn-
+ternational Confer enceonMachine Learning .
+240
+
+

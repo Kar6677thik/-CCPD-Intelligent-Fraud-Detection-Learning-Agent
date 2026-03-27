@@ -1,0 +1,1243 @@
+Journal of Information Security and Applications 55 (2020) 102596
+Available online 2 September 2020
+2214-2126/© 2020 Elsevier Ltd. All rights reserved.Enhanced credit card fraud detection based on SVM-recursive feature 
+elimination and hyper-parameters optimization 
+Naoufal Rtayli*, Nourddine Enneya 
+Laboratory of Informatics Systems and Optimization, Ibn Tofail University, Kenitra, Morocco   
+ARTICLE INFO  
+Keywords: 
+Credit card fraud detection 
+Imbalanced data 
+Machine learning 
+Hyperparameters optimization 
+Recursive feature elimination 
+Synthetic minority oversampling technique ABSTRACT  
+With the growth of online shopping, Credit Card Fraud (CCF) comes out as a serious menace. For this end, the 
+automatic and real-time fraud detection field calls for several studies. The recent ones use many Machine 
+Learning (ML) methods and techniques due to their beneficial characteristics to build a good fitting model to 
+catch fraudulent transactions. The purpose of this paper is to develop a new model based on a hybrid approach 
+for Credit Card Fraud Detection (CCFD). The proposed model, compared to previous studies, shows its strong 
+ability to identify fraud transactions. Precisely, the robustness of our model is built by combining the strength of 
+three sub-methods; the Recursive Feature Elimination (RFE) for selecting the most useful predictive features, the 
+GridSearchCV for Hyper-Parameters Optimization (HPO) and the Synthetic Minority Oversampling (SMOTE) to 
+overcome the imbalanced data problem. The experimentations of our model, on many real-world data sets, gives 
+the best results in terms of efficiency and effectiveness.   
+1.Introduction 
+Globalization has amplified the use of the Internet for online shop-
+ping where the credit cards are widely required. Also, the quick and big 
+number of Credit Card Transactions (CCT) led to an important rise in 
+fraud cases [1–3]. Therefore, it is judicious to find new techniques and 
+methods able to detect these frauds. Fraud can be defined as an unjust or 
+criminal deception intended to end in personal gain [4–6]. A credit card 
+is a physical medium for selling goods or services without having cash in 
+hand. Credit Card Fraud Detection (CCFD) is the procedure to identify 
+whether a transaction is normal or abnormal. Credit Card Crime (CCC) 
+[4,6] refers to the way of stealing the identity of someone (victim) and 
+accomplish fraudulent transactions in its name (Fig. 1). Consequently, 
+the victim can be prone to unpredicted consequences [6–8]. 
+The fraudulent transactions are divided into two kinds: online fraud 
+and offline fraud; the first is performed by using a stolen physical card at 
+the market shop (for example) etc…, while the second is committed by 
+stealing victim identities such as credit card numbers, name of the credit 
+card holder, expiry date, and passwords [6–8]. 
+The classification of fraudulent transactions with highly imbalanced 
+classes of data becomes very challenging. Indeed, the number of normal 
+transactions belonging to the normal class is, comparatively, much 
+larger than the number of fraudulent transactions class which contains abnormal cases [9,10] . So, whatever the used Fraud Identification 
+Model (FIM) [11,12] , we should identify, firstly, the minority-class 
+samples (fraudulent transactions) apart from the majority-class sam-
+ples (legitimates transactions) [6,13,14] . Fig. 2 shows an example of 
+imbalanced data where the orange dots represent the fraud cases with 
+much lower frequency compared to the legitimate cases represented by 
+the blue dots. 
+The detection of Credit Card Fraud (CCF) becomes a relevant 
+research area in the last few years and several studies use Machine 
+Learning (ML) and Data Mining (DM) approaches to handle this problem 
+[15–19]. Indeed, in the literature we find two main approaches to 
+identify and detect the fraud transactions: the supervised approach and 
+the unsupervised approach [2,20 –22]. The supervised approach, a 
+learning algorithm is performed to classify new transactions (fraudulent 
+and non-fraudulent) based on a transactional data record [15,20] . The 
+well-known algorithms, used for supervised identification and detection 
+of CCF, are as follows: Bayesian Belief Networks [20], Random Forests 
+[23,24] and K-Nearest Neighbors [17,25] . Support Vector Machines [16, 
+17,26] , Artificial Neural Networks [17,22] and Hidden Markov Models 
+[27]. The unsupervised approach, algorithms are designed to detect the 
+hidden patterns in non-labeled transactional data [28]. As examples of 
+the used unsupervised methods, we found SOMs (Self-Organized Maps) 
+method and the K-Means method for problems associated with 
+*Corresponding author at: Laboratory of Informatics Systems and Optimization, Faculty of Sciences, Ibn Tofail University, Kenitra, Morocco. 
+E-mail addresses: naoufal.rtayli@uit.ac.ma , enneya@uit.ac.ma (N. Rtayli), enneya@uit.ac.ma (N. Enneya).  
+Contents lists available at ScienceDirect 
+Journal of Information Security and Applications 
+u{�~zkw! s{yo|kr o>!ÐÐÐ1ow �o�to~1m{y2w{m k�o2ut�k!
+https://doi.org/10.1016/j.jisa.2020.102596    
+
+Journal of Information Security and Applications 55 (2020) 102596
+2clustering [28–31]. 
+Although, the deployed efforts to detect the CCF, the fight against 
+this kind of cyber-crime [32] is still in the beginning due to numerous 
+barriers. Indeed, previous studies have involved the utilization of 
+updated data sets to investigate frauds; but because of many security 
+concerns, banks and financial companies prohibit disclosure of their 
+sensitive data on CCT, which limits the CCFD investigations [33]. In 
+another side, the conventional metrics used to evaluate a CCFD model, 
+such as accuracy and specificity, which measure the prediction cor-
+rectness, are not enough to conclude about the efficiency of the model 
+for identifying and detecting fraudulent transactions; so, the sensitivity 
+metric, which measures the model efficiency, is needed to well study the 
+performance of the given problem classification [6,27] . The F-score [27, 
+34] is considered as a more realistic metric to measure the performance 
+of the prediction of a CCF test, by combining both sensitivity (recall) and 
+precision metrics. The F-score measures the prediction of a classification 
+test and balances the use of sensitivity and precision to do so [34,35] . 
+In the literature, we found many studies performed their models 
+without the identification of predictive features. The consideration of all 
+features for prediction may give an inadequate start for the fraud 
+detection process and may not accurately reflect the cardholder 
+behavior in terms of expenditure [19,35,36] . Thus, the use of all features 
+without a better selection of predictive ones may not result in a better 
+sensitivity of fraud detection and minimization of false alarms [6,27] . 
+Briefly, a selection of predictive transactional features is very important 
+to build an optimized fraud detection model [37,38] . To have a mean -
+ingful selection of features for the studied model, the availability of 
+various real-world databases is needed, necessary to obtain an accurate 
+evaluation of performance. 
+In the real-world, fraud cases (minority-class) are considered as rare events, which make their identification so difficult. Consequently, ac-
+curate classification of minority-class samples in case of an imbalanced 
+dataset is still a big challenge. Whereas, achieving the best performance 
+in the CCF detection process, critically, depends on both the way to 
+estimate the hyper-parameters of the used model and the way to select 
+the predictive features. 
+In this paper, we propose a hybrid model, to improve prediction 
+efficiency along the process of CCFD. This hybrid model combines su-
+pervised and unsupervised anomaly detection by taking advantage of 
+the robustness of many ML methods and techniques. We have used the 
+Hyper-Parameters Optimization (HPO) method to estimate the hyper- 
+parameters of our model and the Recursive Features Elimination (RFE) 
+method to select the predictive features [16]. Moreover, to overcome the 
+problem of the imbalanced dataset and to increment the learning rate, 
+we have used the technique called Synthetic Minority Oversampling 
+Technique (SMOTE) [39]. 
+The rest of this paper is structured as follows: Section 2 presents 
+related works. Section 3 details our proposed model based on a hybrid 
+approach. Evaluation metrics are given in Section 4. Experiments and 
+discussion of the obtained results are detailed in Section 5. The last 
+section concludes the paper with some perspectives. 
+2.Related works 
+Credit card datasets contain details of transactions such as account 
+numbers, credit card and purchase types, transaction location and time, 
+customer name, merchant code, transaction size, etc. These details are 
+used by the CCFD research community as vectors to determine whether 
+a transaction is fraudulent or legitimate and to study the outliers that 
+can present a suspect case. Wei et al. [40] presented an online Fraud 
+Detection System (FDS) and proved its efficiency in large volumes of 
+extremely imbalanced data. Padmaja et al. [41] presented a fraud 
+detection method that combines backpropagation, naïve Bayes, and 
+C4.5 tree algorithms, and applied them to derived data from over-
+sampling with replacement. Bolton and Hand [42] proposed two clus-
+tering techniques: peer group analysis and breakpoint analysis to detect 
+behavioral fraud. Tax et al. [43] studied an intuitive solution: generating 
+uniformly distributed random outliers in the hypercube that encloses the 
+target data to guide hyper-parameter selection, and they further 
+improved the hypercube into a hyper-sphere to better fit the target data. 
+Weston et al. [44] used peer group analysis on transaction datasets to 
+detect outliers and abnormal transactions. Genetic algorithms combined 
+with scatter search was used to minimize the number of wrongfully 
+classified transactions [45]. Bahnsen et al. [46]suggested a 
+cost-sensitive model that supposes a Bayes minimum risk to identify -
+fraud cases. Kamaruddin and Ravi [47] proposed a one-class classifi -
+cation approach to overcome the imbalanced data problem. Precisely, 
+they developed a hybrid system composed of Particle Swarm Optimi -
+zation and Auto Associative Neural Network and implemented in the 
+Spark computational framework. 
+Many other studies worked on the same goal with other techniques 
+[2,48 –52]. Ramakalyani and Umadevi [49] applied genetic program -
+ming to detect fraudulent card transactions. Bentley et al. [50] devel -
+oped a fuzzy Darwinian detection model based on genetic programming 
+to generate fuzzy logic rules. Additionally, Ganji and Mannem [51] 
+suggested a data stream outlier detection algorithm based on reverse 
+K-nearest neighbors to identify fraud. Bhattacharyya et al. [52] studied 
+the comparison between logistic regression, SVM, and random forest; 
+they note that random forest is well outperformed compared to the two 
+other methods. Hormozi et al. [48] developed a CCFD system by 
+executing the Negative Selection Algorithm (belong to the artificial 
+immune system algorithms family) by using the Hadoop and Map 
+Reduce paradigm. Carcillo et al. [2] proposed an active learning 
+approach to label fraudulent transactions. 
+Further scientific researches developed many other ML algorithms 
+based on a neural network; Ogwueleka [53] used an artificial neural 
+Fig. 1.Steps of credit card fraud.  
+Fig. 2.Example of Imbalanced Binary Classification Problem.  N. Rtayli and N. Enneya                                                                                                                                                                                                                      
+
+Journal of Information Security and Applications 55 (2020) 102596
+3network with a rule-based component; while Patidar and Sharma [54] 
+applied an artificial neural network tuned by genetic algorithms. Syeda 
+et al. [55] introduced a fuzzy neural network on parallel machines to 
+speed up the rule production for CCFD customer-specific. Srivastava 
+et al. [56] used a Hidden Markov Model (HMM), initially, performed on 
+a CCT sequence of cardholders, who have normal behavior, and indicate 
+how the model can be useful for fraud detection. 
+Moreover, Deng et al. [57] suggested a “skewness” based outlier 
+generation technique that produces outliers by randomly “skewing” 
+where each target datum from its original location. Minegishi and Niimi 
+[58] presented an online type of decision tree named Very Fast Decision 
+Tree to detect fraudulent credit cards. An enhanced fraud pattern 
+detection based on SVM classification with the Gaussian kernel function 
+was proposed by Pasarica[59]. Subashini and Chitra[60] compared five 
+models: support vector machines, decision trees (C5.0 and CART) with 
+Bayesian belief networks, logistic regression, and concluded that the 
+CART algorithm performs better than the other models. Artificial Im-
+mune Systems (AIS) are investigated by Brabazon et al. [61] and Wong 
+et al. [62] for the identification of abnormal transactions imitating the 
+immune system’s ability to do the difference between itself and 
+not-itself. 
+Recently, we found many other approaches used in the field of Credit 
+Card Fraud Identification (CCFI) process. N. Robinson et al. [27] in its 
+approach, called the Store Model Divergence Method for Prepaid Cards, 
+based on an HMM of merchant’s terminals to identify frauds in 
+real-time. Salvatore Carta et al. [19] introduced a new data intelligence 
+technology based on the multi-consensus prudential model. Their 
+method designed to bring learners together with different scenarios; 
+where one class is very smaller than the other classes or where various 
+classification errors considered from distinctive ways. Salazar et al. [13] 
+studied the performance of their proposed semi-supervised machine 
+learning algorithm to overcome the imbalanced classification problems. 
+They augment the class of limited data to make the variance of the es-
+timate lower by using a method of data subrogation. After that, they 
+analyze the influence of this augmentation, in numerous simulated and 
+experimental scenarios of an application, for automatic detection of 
+CCF. 
+Saia [63] introduced a Discrete Wavelet Transformation (DWT) 
+based approach, for fraud detection, by developing an evaluative model 
+with the ability to deal with imbalanced distribution and heterogeneous 
+data. They detected frauds by exploiting only legitimate transactions 
+through their model definition process, which is less influenced by the 
+variation of data. In a second work, Saia and Carta [64] used the Linear 
+Dependence Based (LDB) model and compare its performance with 
+random forests as one of the well-known state-of-the-art models. They 
+validated their work by performing the model on two real-world data 
+sets having a strong imbalanced data distribution. In [65], they took 
+benefits of the analysis of an evaluation criterion, in terms of domain 
+frequency, of the spectral pattern of the data. Their method allows 
+obtaining a more stable model to represent information and reduce 
+problems of imbalance and heterogeneity of data. 
+Salazar et al. [36] discussed some theoretical and practical solutions 
+after stirring up the main issues related to the problem of Automatic 
+CCFD (ACCFD). They proposed a framework for ACCFD based on deci-
+sion fusion and surrogate data. After that, they tested their sensitivity 
+through different ratios of fraud/legitimate and conclude the paper with 
+some proposed research axis.Vergara et al. [66] improved the perfor -
+mance of CCFD through some methods based on signal processing on 
+graphs. Their approach relay on three methods: the first is a variant of 
+the classic Iterative Amplitude Adjusted Fourier Transform (IAAFT) and 
+the two other methods are variant of iterative surrogate signals on graph 
+algorithms (ISSG). By performing these methods, on several scenarios 
+with different legitimate and non-legitimate transaction ratios, the 
+detection capabilities are improved and evaluated by Receiver Oper-
+ating Characteristic (ROC) curves and Key Performance Indicators (KPI), 
+widely used in the financial business. Zareapoor et al. [14] integrated a sampling technique with a set of 
+AdaBoost to enhance prediction performance on imbalanced data set 
+Precisely, through an empirical experiment, their used technique shows 
+more appropriate performance measures for mining imbalanced data-
+sets. In [67], Zareapoor et al. developed a balancing strategy to over-
+come the well-known issues of classification and collection in the CCFD 
+field. They created a contrast vector by customer based on its historical 
+behaviors and perform a supervised learning model to classify cus-
+tomers. The model experimented on a real credit card dataset provided 
+by FICO, shows significant performance compared to the other 
+state-of-the-art classifiers. In other work, Zareapoor et al. [38] presented 
+a hybrid model, to handle datasets with a large number of classes, which 
+substitute linear kernel for nonlinear ones without losing accuracy. It is 
+performed on a real-world dataset with 20,000 to 65,000 classes, and it 
+gives significant gains compared to several state-of-the-art approaches. 
+Furthermore, Mahmoudi and Duman[15] proposed, for the first 
+time, a modified Fisher discriminant function by using simple linear 
+discriminant analysis for CCFD, and customized it to be more sensitive to 
+the False Negatives (FN) errors. Rtayli and Enneya introduced a CCFD 
+method based on a random forest classifier, as feature-filter, combined 
+with isolation forest technique, to split fraudulent transactions from the 
+legitimate ones [68]. Kültür and Çaglayan[20] used a model per card 
+account that combines six types of models: Decision Trees, Random 
+Forests, Bayesian Networks, Naive Bayes, SVM, and k-nearest neighbors. 
+Sohony et al. [23] combined two methods, random forest, and 
+feed-forward neural network. 
+Artificial Neural Networks (ANN) for CCFD were discussed in several 
+works [24,69,70]. Among ANN types, there are deep and shallow 
+learning; the first has a complex structure with more than one hidden 
+layer and more nodes, in each one, compared to the shallow model. Roy 
+et al. [69], and Jurgovsky et al. [24] adopted recurrent neural networks, 
+which use a sequence of transactions as an input of their model. Also, 
+Gupta et al. [70] compared various machine learning models based on a 
+deep feed-forward neural network. Finally, Makki et al. [6] conducted 
+an experimental study with solutions that tackle the imbalance classi -
+fication problem. They explored these adopted methods along with the 
+machine learning algorithms used for fraud detection and identified 
+their weaknesses. 
+3.Our proposed approach 
+Through this section, we present the principal components of our 
+proposed hybrid model based on the three techniques/methods: the 
+Support Vector Machine-Recursive Feature Elimination (SVM-RFE) 
+technique to extract best predictive features, the Synthetic Minority 
+Oversampling Technique (SMOTE) technique to transform an imbal -
+anced dataset to a balanced one and the GridSearchCV method [71], as a 
+Hyper Parameter Optimization (HPO) solution, used by a Random 
+Forest Classifier (RFC), to detect Credit Card Frauds (CCFs). The pro-
+posed model is denoted as RFC (HPO,RFE) . 
+3.1. Data exploration and visualization 
+In this subsection, we give a description of three real-world datasets, 
+used in simulations of our proposed approach, as follow: 
+European data (DB1) [72]: The given dataset represents collected 
+transactions from European cardholders who made within two days in 
+September 2013. It was originally collected, by two research teams, as 
+part of a partnership between Worldlinecompany specialized in money 
+transfer service and Libre Brussels University (LBU). Their goal is to use 
+Big Data solutions to analyze fraudulent transactions. The dataset con-
+tains 30 attributes including the time when a transaction took place, the 
+amount of transactions, and 28 other attributes labeled from V1 to V28 
+result of the transformation of the original attributes set (features)by 
+using a method called Principal Component Analysis (PCA). The PCA 
+method is performed to hide sensitive attributes of the cardholders for N. Rtayli and N. Enneya                                                                                                                                                                                                                      
+
+Journal of Information Security and Applications 55 (2020) 102596
+4legal and moral reasons. 
+PaySim data (DB2) [73]: This dataset contains 1048575 CCT and 11 
+attributes (features) with 1142 samples representing fraudulent trans -
+actions and 1047433 other transactions represent as legitimate . This 
+dataset, generated by using PaySim, has a very low fraudulent trans -
+action rate (D0.2 %). PaySim simulates mobile money transactions 
+based on a sample of real transactions extracted from financial logs, for one month, of a mobile money service implemented in a country from 
+Africa. The original logs were produced by a multinational company, 
+currently running in more than 14 countries all around the world. 
+Data set 03 (DB3) [74]: This dataset used includes ten million CCT 
+characterized by seven variables (attributes): Gender, State, Cardholder, 
+Balance, NumTrans, NumIntTrans, CreditLine, and fraudRisk, which 
+represent the target variable. The rate of fraud cases, in this dataset, is 
+5.96%. 
+The target variable of the three datasets DB1, DB2, and DB3 is binary; 
+it takes value 0 for a legitimate transaction and 1 for a fraudulent one. 
+The following Figs. 3, 4, and 5 show the target variable distribution 
+of the considered datasets: 
+According to Figs. 3, 4, and 5, we observe that they are heavily 
+imbalanced; indeed, the number of frauds (abnormal transactions) is 
+very small than the number of legitimate transactions (normal trans -
+actions). The three fraud cases rates of datasets DB1, DB2, and DB3 are 
+about 0.17%, 0.1%, and 5.96% respectively. This big difference between 
+classes (legitimate and fraudulent) can mislead our CCFD model and, 
+consequently, led to misclassification. 
+3.2. The imbalanced data classification problem 
+The imbalanced data classification still a major problem in the pro-
+cess of fraud detection. Indeed, with an imbalanced dataset, we find a far 
+few training instances of one class-variable than the other class-variable. 
+Correspondingly, the first is known as the minority set and the second is 
+known as the majority set [9]. While performing an imbalanced dataset 
+to detect fraudulent transactions, most classification models rank the 
+majority class with a very high accuracy rate and the minority class with 
+a much lower one. This means that the proposed classification model has 
+a bad performance to diagnosis the minority class samples. 
+To overcome this class imbalance problem, we use the SMOTE 
+technique to have a more accurate experiment. The SMOTE technique is 
+an oversampling approach that uses a technique of producing arbitrary 
+examples rather than simply oversampling through duplication or 
+replacement. Furthermore, the SMOTE technique is able to increment 
+the learning process of a Fraud Detection Algorithm (FDA) [39,75] . 
+According to Kumari and Mishra [39], SMOTE technique ’s algorithm 
+can be written as follows: 
+Step 1: Putting the minority class (fraudulent transactions) set A, for 
+each x ∃A, the k-nearest neighbors of x are acquired by computing the 
+Euclidean distance between x and every other sample in set A. 
+Step2 : The sampling rate N is set corresponding to the imbalanced 
+amount. For each x ∃A, N examples are randomly chosen from its k- 
+nearest neighbors, and they build the set A1. 
+Step3: For each example xk ∃A1(k1, 2, 3…N), the following 
+expression is utilized to generate a new example: 
+x∕xrand0C1∗†x xk† (1)  
+in which rand (0, 1) represents the random number between 0 and 1. 
+3.3. Selection of predictive features 
+In case of a classification problem, characterized by large learning 
+samples and multiple dimensions, like our considered datasets DB1/ 
+DB2/DB3, the feature selection process plays a key role in avoiding the 
+oversampling issue and optimizing the classification performances [7, 
+47,48,51,76] . 
+The reduction of features used before training a machine learning 
+model can improve its performance in terms of runtime and efficiency 
+[16,25,76,77] . In the real-world, the feature reduction process is hard 
+and often requires extensive testing. Indeed, in the case of the used 
+encrypted data, like the dataset DB1 to hide sensitive attributes of 
+cardholders for legal and moral reasons [48,49] . Similarly, to verify and 
+confirm that the chosen attributes (features) are more predictive and 
+Fig. 3.Distribution of transactions per target variable (normal0, fraud1) 
+of BD1. 
+Fig. 4.Distribution of transactions per target variable (normal0, fraud1) 
+of BD2. 
+Fig. 5.Distribution of transactions per target variable (normal0, fraud1) 
+of BD3. N. Rtayli and N. Enneya                                                                                                                                                                                                                      
+
+Journal of Information Security and Applications 55 (2020) 102596
+5informative, as in our cases of the DB2 and DB3 which contain a limited 
+number of attributes. Moreover, it is important to check if these chosen 
+attributes are helpful and improve the ability and performance, of the 
+model, by identifying the anomalies (in our case, the anomalies are 
+fraudulent transactions) [78,79] . 
+In the CCFD field, there is a lack of original datasets [33]; because 
+companies specialized in transfer money, such as banks, consider 
+sharing cardholder ’s information with the scientific public can hurt 
+relationship business with their customers. 
+In the Machine Learning (ML) literature, there are many techniques 
+used to select predictive features or eliminate non-predictive ones [76, 
+80,81] . One of them, which we have used in our study, is called 
+Recursive Feature Elimination (RFE); it is an elimination process of 
+non-predictive features without increasing the model ’s errors and, 
+consequently, improving learning with minimization of the training 
+time. That means, the most informative data with predictive features is 
+essential [16,25] . 
+Several studies proved the efficiency and effectiveness of RFE to 
+improve prediction models: HerveNkiama et al. [82,83] employed an 
+RFE process associated with a decision tree-based classifier to identify 
+suitable relevant features for the purpose to improve Intrusion Detection 
+System (IDS). Also, Isabelle Guyon et al. [84,85] experimented with RFE 
+on gene selection for cancer diagnosis. They showed that gene removal using RFE resulted in better classification performance. Specifically, the 
+SVM-RFE (RFE based on Support Vector Machine) version, which 
+showed to be one of the best feature selection methods; it classifies 
+features (genes) by performing a vector machine classification model. 
+These works lend to support the idea that features selection based on 
+RFE can be used to improve the classifier performance; identifying 
+relevant features, will allow the improvement of FDS. Fig. 6 illustrates 
+the RFE process of the elimination of non-predictive features. 
+To this end, we have used the SVM-RFE technique to select the best 
+predictive features to enhance the CCFD process. To select those 
+Fig. 6.Recursive Feature Elimination (RFE) framework for feature selection.  
+Fig. 7.Support Vector Machine- Recursive Feature Elimination (SVM-RFE) process.  
+Fig. 8.Selection of predictive features from DB1 based on SVM-RFE.  
+Fig. 9.Selection of predictive features from DB2 based on SVM-RFE.  N. Rtayli and N. Enneya                                                                                                                                                                                                                      
+
+Journal of Information Security and Applications 55 (2020) 102596
+6features, the SVM-RFE technique uses a recursive approach even for the 
+ever-smaller datasets [78]. Fig. 7 presents a simple organigram showing 
+the SVM-RFE technique ’s steps, where a feature is eliminated, if it is not 
+predictive, after running a bunch of training operations on the dataset. 
+This process is repeated, each time a new non-predictive feature is 
+detected with the smallest prediction performance on the studied model, 
+it will be as well eliminated. This process stopped when all features of 
+the dataset are exhausted. Then, the features are classified at the same 
+time when they are eliminated [84]. 
+Figs. 8, 9, and 10 below, present the results ’ selection of the best 
+predictive features by using the SVM-RFE technique. It is obvious that, 
+for each dataset, the number of the selected predictive features is 
+decreased: 28 selected features among 30 in DB1, 6 selected features 
+among 9 in DB2, except in DB3 where the selected features are 7 among 
+7, this is due to the fact that the predictive characteristic that they 
+possess is verified and confirmed by the SVM-RFE. We can, therefore, 
+consider that all features of DB3 are predictive which will not decrease 
+the prediction performance of the model in detecting fraudulent 
+transactions. 
+As a good consequence, the shape and the size of the new subsets are 
+summarized as follow: 
+According to Table 1, we can see that the extracted subsets keep the same number of transactions as their original datasets. Moreover, the 
+selected predictive features by the SVM-RFE technique, still character -
+izing samples in these new subsets. Furthermore, the size of the two 
+subsets extracted from DB1 and DB2 are smaller than the size of their 
+original datasets. This will have a good impact by reducing the training 
+time and enhancement of the identification of fraud cases [78,79] . 
+3.4. Hyper-parameters optimization process 
+The performance of many machine-learning methods relay, consid -
+erably, on the used hyper-parameters, mostly for complex models [86]. 
+Hyper-parameters such as learning rate, kernel size, number of estima -
+tors, and number of trees, etc… are generally set through experiments. 
+They are defined and estimated before the learning process which esti-
+mates the optimized parameters of the used model. The following Fig. 11 
+presents the HPO process steps for CCFD. 
+Machine-learning models involve many hyper-parameters to be 
+tuned. Adequate control of hyper-parameters can prevent overfitting of 
+the model [86], which occurs when the used model is too flexible. 
+Therefore, choosing the optimized set of hyper-parameters is crucial for 
+improving the CCFD task performance. In our study, we have used the 
+Random Forest Classifier (RFC) for the CCFD. 
+Our choice of RFC is related to many reasons: firstly, because is 
+widely used by the ML community working on CCC detection and sec-
+ondly as one of the most accurate learning methods: it out-performs all 
+single machine learning classifiers, such as Vector Support Machine, K- 
+Nearest Neighbor, and others on various datasets [39,87] . Also, it is fast 
+in prediction and ensures good performance and efficiency in the case of 
+Fig. 10.Selection of predictive features from DB3 based on SVM-RFE.  
+Table 1 
+The size and the shape of the subsets extracted from DB1, DB2, and DB3 using SVM-RFE.   
+DB1 DB2 DB3  
+Original dataset New Subset Original dataset New Subset Original dataset New Subset 
+Shape Transactions 284807 284807 1048575 1048575 200000 200000 
+Features 30 28 9 6 7 7 
+Size (Mo) 143 129 470 282 5.04 5.04  Table 2 
+Input hyper-parameters entered to the GridSearchCV method.  
+Hyper-parameters Values 
+Bootstrap [True, False] 
+n_estimators [100, 200, 300] 
+max-depth [8, 10, 12] 
+max-features [2, 3, 4] 
+min-samples leaf’ [2, 4] 
+min-samples split [8, 10, 12] 
+max-leaf nodes [6, 8, 10]  
+Fig. 11.Hyper-Parameters Optimization (HPO) steps for CCFD.  N. Rtayli and N. Enneya                                                                                                                                                                                                                      
+
+Journal of Information Security and Applications 55 (2020) 102596
+7huge databases [5,88] . Precisely, The RFC algorithm has been proven as 
+a very powerful classifier to detect fraudulent transactions [34,35,52] . 
+Moreover, performing the RFC is well recommended when the class ’s 
+distribution is skewed [11,89] . 
+The RFC classifier, is well involved, in the fraud detection process 
+[34,35] : it uses simple parameters and it is flexible when handling 
+different types of data attributes/features [11,35] . The RFC can easily 
+deal with the big size of training data by dividing the dataset into 
+samples before starting the learning process [20]. Moreover, the RFC is 
+considered as a robust classifier in terms of noise and outliers; otherwise, 
+it well performs even there are some mislabeled cases/values/data in the 
+dataset [34,52] . Its strength does not depend on building a single tree 
+but also on the correlation between the different sub-trees [71]. It does 
+not need complex parameters to tune. The main parameters needed are 
+the number of trees, the number of features considered in each split, and 
+the maximum depth of each sub-tree [23]. Fig. 12 shows a simple 
+illustration of how RFC works: 
+The RFC algorithm is a bagging variant [39], where the main 
+learners are decision trees. For training, it chooses a random subset of 
+variables or entities. The RFC model is robust versus overfitting and 
+outliers and can be used in both regression and classification problems 
+[71,90] . 
+In our work, the number of trees is optimized by performing 10-fold 
+cross-validation experiments on the training dataset; then we select the 
+hyper-parameters values, which gives the best-maximized F-score. The 
+values, evaluated by GridSearchCV method, considered as hyper- parameters of our RFC based model is as below: 
+By using the HPO method, we estimate the best hyperparameter 
+values for our RFC based classifier to start the prediction process on the 
+testing dataset. Table 3 summarizes the main optimized hyper- 
+parameters selected for our prediction process. 
+3.5. Our Proposed algorithm for CCFD 
+In this subsection, we give the main parts of our algorithm for CCFD 
+composed by three sub-algorithms: selection features using the SVM- 
+RFE algorithm to select predictive features, Hyper-parameters Opti-
+mizationalgorithm to find optimized hyper-parameters and the credit 
+card fraud detectionalgorithm to detect the fraud cases. The pseudo- 
+code of our proposed algorithm for CCFD can be written as follows:  
+Credit Card Fraud Detection Algorithm 
+Step 1: Recursive Feature Elimination based on Support Vector Machine 
+1: Data : Dataset with p* variables and a binary outcome. 
+2: Output : Ranked list of variables according to their relevance. 
+3: Find the optimal values for tuning parameters of the SVM model; 
+4: Train the SVM model; 
+5: p ← p*6: while p ≽2 do 
+1: SVM p ← SVM with the optimized tuning parameters for the p variables and 
+observations in Data; 
+2: wp ← calculate the weight vector of the SVM p(wp1,…, wpp);  
+3BrankBcriteria ←w2
+p1C…Cw2
+pp; 
+4: min.rank.criteria ← variablewithlowestvalueinrank.criteriavector; 5: 
+Remove min.rank.criteria ; 
+6: p ← p  1; 
+7: end 
+8: Rank 1 ← variableinDataℑ∃(Rank 2,…, Rank p*); 
+9: D (Rank 1,…, Rank p*) 
+10:return D 
+Step2: Hyper-parameters Optimization using GridSearchCV 
+11: input : 
+12: training set D (x1,y1),…, (xm,ym) 
+13: set of parameter values ⊝ 
+11: learning algorithm A 
+15: integer k 
+16: partition DintoD 1,D2,…, Dk 
+17: for each θ ∃⊝ 
+18: for i 1…k 
+(continued on next page) 
+Fig. 12.Illustration of a Random Forest Classifier (RFC) for CCFD.  
+Table 3 
+Summary of the returned values by the GridSearchCV method.  
+Hyperparameters Subset 1 Subset 2 Subset 3 
+bootstrap True True True 
+n_estimators 100 200 100 
+max-depth 10 12 8 
+max-features 2 2 2 
+min-samples leaf’ 2 2 2 
+min-samples split 12 10 12 
+max-leaf nodes 10 10 10  N. Rtayli and N. Enneya                                                                                                                                                                                                                      
+
+Journal of Information Security and Applications 55 (2020) 102596
+8(continued ) 
+hi,θ A(D\Di; θ) 
+19: errorθ1
+k̂k
+i1LSihiCθ
+20: output 
+21: θ* argmin θ[error(θ)] 
+22: hθ∗ADCθ∗
+Step3: Credit Card Fraud Detection 
+23: input : Minority data D(t) {xi ∃X}wherei 1, 2, …, T 
+24: Number of minority instances (T), SMOTEpercentage 
+25: fori 1, 2, …, T do 
+1: Find the k nearest (minority class) neighbors of xi 
+2B}N⌊N
+100⌋
+3: while√Nℑ0do  
+1: Select one of the k nearest neighbors, call this x 
+2: Select a random number a ∃[0, 1] 
+3B}xxiax xi
+4: Append }N}N 1 
+4: end while 
+26: end for 
+27: output : Return synthetic data S 
+28: Increment learning of RFC using S 
+29: Predict fraudulent transactions using RFC tuned with hθ∗, on D 
+30: Evaluation of the model prediction   
+To calculate the predictions on testing datasets, we trained the 
+enhanced model on three real-world datasets. The results show that our 
+hybrid approach makes a good performance by improving the precision 
+rate of fraud cases detection. The prediction results are given with de-
+tails in Section 5. 
+4.Performance evaluation metrics 
+In this section, we give an overview of the used performance metrics 
+to evaluate a classification problem. These metrics are confusion matrix, 
+global accuracy, sensitivity, specificity, precision, F-score, and Area 
+Under the Curve (AUC) [34]. The confusion matrix also called an error matrix, is a table for 
+calculating the accuracy of a classification algorithm. Table 4 shows the 
+structure of a confusion matrix. 
+The definitions of the terms in Table 4 are as follows:  
+≡True Negative (TN)Number of legitimate transactions predicted as 
+legitimate.  
+≡True Positive (TP) Number of fraudulent transactions predicted as 
+fraudulent.  
+≡False Positive (FP)Number of legitimate transactions predicted as 
+fraudulent (type 1 error).  
+≡False Negative (FN)Number of fraudulent transactions predicted as 
+legitimate (type 2 error). 
+4.1. Overall accuracy 
+To calculate the overall accuracy of the classification, the predictions 
+of the test sets are compared to the correct labels. The equation below 
+shows how this measure is calculated as a percentage: 
+Accuracy100×TPTN
+TPFPFNTN(2)  
+4.2. Precision 
+Precision is a measure that calculates how many positive predictions 
+are correctly identified as positive. It is formulated as follows: 
+Precision100×TP
+TPFP(3)  
+4.3. Recall 
+Recall calculates how many positive instances (true labels) are 
+correctly predicted as positive. It is also known as sensitivity or true 
+positive rate. It is formulated as: 
+Sensitivity100×TP
+TPFN(4)  
+4.4. Specificity 
+Specificity is a measure that calculates how many negative actual Table 4 
+Confusion matrix.  
+Real set Classification result 
+Fraudulent Legitimate 
+Fraudulent set TP FN 
+Legitimate set FP TN  
+Fig. 13.Example of the AUC-ROC graph [91].  N. Rtayli and N. Enneya                                                                                                                                                                                                                      
+
+Journal of Information Security and Applications 55 (2020) 102596
+9labels are correctly identified as negative. The equation below formu -
+lates the metric of specificity: 
+Specificity100×TN
+TNFP(5)  
+4.5. F-score 
+The F-score is a metric of accuracy that calculates the weighted 
+harmonic mean of the sensitivity (recall) and the precision. it is also 
+called F-score, and formulated as: 
+F score2×Precision×Recall
+PrecisionRecall(6)  
+4.6. Fall-out 
+Fall-out is calculated as shown in Eq. (7), where FP is the number of 
+fraudulent transactions misclassified as legitimate and TN is the number 
+of transactions correctly classified as legitimate. 
+Fall outFPEFPTN (7)  
+4.7. The Curve of the Area Under the Receiver Operating Characteristic 
+(AUC-ROC) 
+The AUC-ROCis obtained as a graph of the rate of true positives 
+versus false-positive rates for different decision thresholds. It is mostly 
+used to measure the performance of a classifier to show their capacity in 
+classification in skewed and overlapping data sets. Fig. 13 presents an 
+example of AUC-ROC. 
+5.Results and discussion 
+Along this section, we present and discuss the obtained results of our 
+proposed RFC-based model (RFC (HPO,RFE )) for improving the CCF iden-
+tification process. These obtained results are illustrated by the well- 
+known performance metrics such as sensitivity, specificity, F-score, 
+and accuracy. 
+5.1. Platform specification 
+The specification of our simulation platform, considered, for this 
+study is summarized on Table 5: 
+Moreover, to proof the performance of RFC (HPO,RFE ), we have 
+considered three kinds of data sets which their characteristics are as 
+follow (Table 6): 
+Our experimentations are performed in a Python environment. The 
+version considered in this work is Python 3.7.1. 5.2. Cross-validation process 
+The assessment process of our RFC (HPO,RFE ) is based on the k-fold 
+cross-validation of the time series method [92,93] by adopting k10 to 
+validate our approach. The available data is split into k series, keeping 
+the chronology of transactions. Then, the predictive model is estimated k 
+times, each time using a training data set containing k-1 of the 
+sub-samples. The rest of the sub-sample is maintained as validation data, 
+serving to estimate the out-of-sample performance of the fitted model. 
+This results in a less biased and more representative estimate of model 
+efficiency [39]. 
+The problem of data imbalance (described in Section 3.2) was 
+encountered during the experiments. We preferred to evaluate the 
+effectiveness of our approach by taking into consideration data pre- 
+processing (e.g., selection features, under-sampling or over-sampling 
+balancing process), which is a crucial step in improving the perfor -
+mance of a classifier, especially in the area of fraud detection [7,39,47, 
+48,51,76] . 
+5.3. Results analysis 
+In this section, we go through the discussion of the results obtained 
+after experiments, of our hybrid approach, on the three considered real 
+datasets DB1, DB2, and DB3. To perform RFC (HPO,RFE ), we split each 
+dataset into two sub-datasets; the first sub-dataset represents the 
+training set (70% of the original dataset) for the training of RFC (HPO,RFE ) 
+and a testing set (30% of the original dataset) to evaluate its perfor -
+mance. For the two datasets DB1 and DB2, we have considered the 
+whole datasets, for experiments, but in the case of the DB3 and due to its 
+very big size, we have considered 2%. We have made this choice to have 
+a fair size between them. The details of the obtained results are given in 
+Table 7 as follow: 
+From the first glance, in Table 7, we remark that RFC (HPO,RFE ) ach-
+ieves 99%, in terms of accuracy, on the DB3 dataset and 100% on both 
+datasets DB1 and DB2. It keeps high-performance values of sensitivity 
+(Recall) to catch the fraud cases: 100% on datasets DB1 and DB2 and 
+99% on dataset 3. This high-performance is also kept in terms of spec-
+ificity, F-score, and AUC-ROC. 
+Fig. 14 shows clearly the efficiency of the model through all the 
+processes of learning data. Indeed, RFC (HPO,RFE ) keeps its good perfor -
+mance, in time, independently of the growing size of the training set: All 
+sub-figures Fig. 14(a), (b), and (c) show that the training scoreline and 
+cross-validation line are, generally, parallel even the size of the data is 
+growing. Moreover, Fig. 14 shows another advantage of RFC (HPO,RFE ); it 
+still steady for all the learning process: in case of datasets DB1 and DB3 
+the lines are kept continue during the whole training process (Fig. 14(a) 
+and (c)), except the line related to the dataset DB2 which in there is few 
+discontinued variation that can be neglected (less than 0.03%) 
+As a first result, we can say that the combination of the three tech-
+niques in our model (HPO, SMOTE technique and the selection of the 
+predictive features based on SVM-RFE) improve the effectiveness in 
+fraud detection; also, it is a stable classifier model because it keeps a 
+good accuracy performance whatever the size of data. Table 5 
+Hardware specification of our used platform.  
+Equipment 
+reference CPU RAM Stockage 
+Memory GPU 
+Dell precision 
+5520 i7 
+7850H 32 
+GB 512 GB Nvidia Quadro 
+M1200  
+Table 6 
+Datasets characteristics.   
+Features 
+number Legitimate 
+transactions Fraudulent 
+transactions Size 
+(Mo) 
+DB1 30 284315 492 143 
+DB2 9 1047433 1142 470 
+DB3 7 188044 11956 5.04  Table 7 
+Performance metrics values of RFC (HPO,RFE ) on datasets DB1, DB2 and DB3.  
+Dataset accuracy Recall Precision F1- 
+score Normal/ 
+Fraud Total 
+transactions 
+BD1 100% 100% 97% 99% 284315 / 
+492 284807 
+BD2 100% 100% 78% 88% 1047433 / 
+1142 1048575 
+BD3 99% 95% 86% 90% 188044 / 
+11956 200000  N. Rtayli and N. Enneya                                                                                                                                                                                                                      
+
+Journal of Information Security and Applications 55 (2020) 102596
+105.4. Area under precision-recall curve 
+Typically, accuracy is the most common tool for measuring the 
+performance of the classification problem [34]. However, in the CCFD 
+field, accuracy is not enough in the case where we are dealing with an 
+imbalanced classification [94]. The accuracy as a unique performance 
+metric, in many cases, can be misled the whole prediction of fraudulent 
+transactions; a model may not catch fraudulent transactions even it has a high accuracy rate. In such a case, with the presence of a minority class, 
+the sensitivity metric is adopted to evaluate the classification model 
+performance [6]. 
+According to Table 7, we see that the sensitivity metric value of 
+RFC (HPO,RFE ) is 100% for DB1 and DB2 and 95 % for DB3. Also, RFC (HPO, 
+RFE), like sensitivity, has high F1-score values; it has 99% for DB1, 88% 
+Fig. 14.(a) Learning curve of RFC (HPO,RFE ) for DB1. (b) Learning curve of 
+RFC (HPO,RFE ) for DB2. (c) Learning curve of RFC (HPO,RFE ) for DB3. 
+Fig. 15.(a) Prediction results of CCFD of RFC (HPO,RFE ) for DB1, (b) Prediction 
+results of CCFD of RFC (HPO,RFE ) for DB2. (c) Prediction results of CCFD of 
+RFC (HPO,RFE ) for DB3. N. Rtayli and N. Enneya                                                                                                                                                                                                                      
+
+Journal of Information Security and Applications 55 (2020) 102596
+11for DB2, and 90% for DB3. 
+To see, closely, the classification performance of RFC (HPO,RFE ), in 
+terms of sensitivity, we have given a visualization of the whole classified 
+card transactions (Fig. 15(a), (b), and (c)) where the blue dots represent 
+transactions classified as normal and orange dots represent abnormal 
+transactions (fraudulent). Fig. 15, shows us, also, that fraudulent 
+transactions are identified and recognized as a fraud with a high rate of 
+classification accuracy even the huge number of contained in each dataset. 
+Moreover, the confusion matrix of RFC (HPO,RFE ) performed on each 
+dataset (Fig. 16(a), (b), and (c)) show that, the fraud cases classified as 
+normal, which mean the type 2 error or the number of False Negatives 
+(FN), is equal to 0 per 492 frauds for DB1, equal to 2 per 1142 frauds for 
+DB2, and equal to 650 per 11956 frauds for DB3. We highlighted here 
+that RFC (HPO,RFE ) has a good capability to minimize the number of type 2 
+errors and catching the rare fraudulent transactions. In real life, this 
+result can be very useful for companies to improve their performances 
+because they focus more on minimizing type 2 errors than type 1 errors 
+[95]. 
+As we want to find the small fraction of positive class, due to the 
+highly imbalanced datasets DB1/DB2/DB3 we have, the AUPR is chosen 
+to evaluate RFC (HPO,RFE ). Indeed, the AUPR metric is more sensitive to 
+the improvements for the positive class (fraud class) [21,94] : it looks at 
+Positive Predictive Value (PPV) and True Positive Rate (TPR). 
+Fig. 17 shows the prediction results of our proposed approach using 
+AUPR. It indicates the threshold values calculated by RFC (HPO,RFE ) to 
+classify transactions. So, according to Fig. 17, RFC (HPO,RFE ) performs well 
+with a highly imbalanced dataset and has a very good rate of precision 
+and recall (sensitivity) measures; it has 97% for DB1 (blue color), 78% 
+for DB2 (orange color), and 81% DB3 (green color). 
+As a second result, our hybrid approach proofs its ability to identify 
+and catch fraudulent transactions with a high prediction rate and a 
+lower number of errors even we deal with imbalanced datasets. 
+Fig. 16.(a) Confusion matrix for DB1. (b) Confusion matrix for DB2. (c) 
+Confusion matrix for DB3. 
+Fig. 17.AUPR of RFC (HPO,RFE ) for DB1, DB2, and DB3.  
+Fig. 18.AUC of RFC (HPO,RFE ) for datasets DB1, DB2, and DB3.  N. Rtayli and N. Enneya                                                                                                                                                                                                                      
+
+Journal of Information Security and Applications 55 (2020) 102596
+125.5. Classification performance 
+In this subsection, we evaluate RFC (HPO,RFE ) by using the AUC-ROC 
+metric (AUC-ROC is largely used to measure the performance of the classifier in skewed and overlapping data sets) to show the capacity of 
+the model in detection whether a transaction is legitimate or fraudulent. 
+Fig. 18 indicates that the proposed hybrid model (RFC (HPO,RFE )), for 
+detecting fraudulent transactions, has achieved a very good classifica -
+tion of fraud cases: it achieves 100% for the DB1 dataset, 99.8% for the 
+DB2 dataset, and 96.7% for the DB3 dataset. This means that RFC (HPO, 
+RFE) is very suitable for detecting CCF in the case when we are dealing 
+with a big imbalanced dataset. 
+5.6. Comparison with state-of-the-art approaches 
+The goal in this subsection is to compare the performance of RFC (HPO, 
+RFE) with two recent studies [19,33] of CCDF on imbalanced datasets: 
+The first one is a Bagging Ensemble Classifier based on the decision tree 
+algorithm [33] (called BDT). The second one is based on the Prudential 
+Multiple Consensus Model (called PMC) [19] that integrates the effi-
+ciency of multiple classification techniques. 
+Following the experimental criteria set out in [19] and [33], we have 
+partitioned the data set (DB1) into four parts respecting the same cri-
+terion of partitioning percentage as presented in Table 8 below: 
+The obtained results are evaluated in terms of AUC, Sensitivity, and 
+Fall-out. These metrics are calculated on each portion of the DB1 Pi, 
+i1,2,3,4) after that the average, based on portions ’ metrics, is calcu -
+lated as summarized in the following (Table 9): 
+Table 9 clearly shows the ability of our proposed hybrid approach in 
+improving the performance of FDS. It catches all fraud cases for the DB1 
+with a Sensitivity rate 100% (0.81 for PMC and 0.70 for BDT) and 
+Fallout 0.0045% ((0.005 for PMC and 0.019 for BDT). We note here 
+that the number of fraudulent transactions catching in the DB1 is 492 
+among 492. Moreover, RFC (HPO,RFE ) reduces the misclassified legitimate 
+transactions to 14. Table 8 
+Dataset DB1 composition.  
+Dataset part Legitimate Fraudulent Total Fraud rate 
+P1 60,415 163 60,578 0.0026% 
+P2 77,338 101 77,439 0.0013% 
+P3 110,942 189 111,131 0.0017% 
+P4 35,620 39 35,659 0.0010% 
+Total 284,315 492 284,807   
+Table 9 
+Comparison between RFC (HPO,RFE ) and PMC and BDT.  
+Methods Dataset part Sensitivity Fall-out AUC 
+BDT [33] P1 0.75 0.010 0.81 
+P2 0,70 0.010 0.80 
+P3 0.65 0.019 0.79 
+P4 0.71 0.019 0.78 
+average 0.70 0.019 0.78 
+PMC [19] P1 0.85 0.005 0.88 
+P2 0.80 0.005 0.89 
+P3 0.83 0.004 0.87 
+P4 0.77 0.006 0.80 
+Average 0.81 0.005 86 
+Our approach P1 1 0.000049 1 
+P2 1 0.0001 0.99 
+P3 1 0.00001 1 
+P4 1 0.00002 1 
+Average 1 0.000045 0.99  
+Fig. 19.Comparison of prediction performances of RFC (HPO,RFE ) and recent ones.  N. Rtayli and N. Enneya                                                                                                                                                                                                                      
+
+Journal of Information Security and Applications 55 (2020) 102596
+13To show the improvement of our approach, compared to the PMC 
+and BDT approaches, the AUC and the Fall-out metrics are evaluated 
+because of the highly imbalanced dataset. We observe that RFC (HPO,RFE ) 
+reaches 0.99 of AUC (great than 0.86 of the PMC model and 0.78 of the 
+BDT model) and 0.000045 of Fall-out (less than 0.005 of the PMC model 
+and 0.019 of BDT model). According to these results, we can conclude 
+that RFC (HPO,RFE ) well outperforms compared to the PMC and BDT 
+models in case of highly imbalanced data. 
+More than the previous comparison, we compare RFC (HPO,RFE ) with 
+other well-known CCFD state-of-art models [23,26,65,96 –101]. Fig. 19 
+summaries this comparison: 
+Other tests are applied to the DB3, were led to compare and evaluate 
+RFC (HPO,RFE ) with [6], where they consider 2% from the original DB3. 
+This obtained dataset, from the original dataset DB3, is split into a 
+training set (70% from the obtained dataset) and a testing set (30 % from 
+the obtained dataset). We have respected this condition to keep the same 
+fraction of imbalance and the same number of transactions. 
+The results of our comparison, summarized in Table 10, show, 
+obviously, that RFC (HPO,RFE ) has 99% as an overall accuracy rate 
+compared to the other models, in which their overall accuracy rate is 
+about 96%. The strength of RFC (HPO,RFE ) is the maintenance of a high 
+sensitivity rate at 95% while the other models cannot reach even 50% as 
+a sensitivity rate; except only one of them that can reach 56% as 
+sensitivity rate (the NB model). 
+Moreover, we obtained the same result, in terms of AUPR. Indeed, 
+RFC (HPO,RFE ) reach 81% as an AUPR rate, while the other models their 
+AUPR is always about 60% on average (except one of them which has 
+very small rate: the KNN model with 29%). Therefore, our proposed 
+approach keeps a very good performance for all main metrics, used in a 
+classification problem with big imbalanced data, which are: the accu-
+racy, the sensitivity, and AUPR. 
+As a summary, our hybrid approach confirmed its efficiency and 
+effectiveness in CCFD, by the comparison with many recent studies 
+working on highly real-world imbalanced datasets. 
+6.Conclusion 
+The identification of fraudulent transactions is still very difficult and 
+challenging. Through this work, our purpose was to improve the pre-
+diction efficiency, during the CCFD process, by exploiting the strength of 
+many Machine Learning methods. Our model based on a hybrid 
+approach combines three methods: The Recursive Features Elimination 
+(RFE) method to reduce the number of features, the Hyper-Parameters 
+Optimization (HPO) method to estimate the optimized hyper -
+parameters to our RFC based model and the Synthetic Minority Over-
+sampling Technique (SMOTE) to overcome the problem of imbalanced 
+data. To validate our results, we performed our model on three big 
+datasets, used as referenced datasets by the Machine Learning commu -
+nity, and it shows its capacity to achieve a high accuracy performance 
+during the CCFD process. Moreover, in terms of comparison with recent 
+works, our model ensures a very good performance whatever the used 
+datasets. As a next work, we plan to study an extended model on more 
+complex real-world datasets characterized by a high degree of concept- drift and highly imbalanced data [3,102,103] and to develop an adap-
+tive CCFD System (ACCFDS). 
+Declaration of Competing Interest 
+The authors declare that they have no known competing financial 
+interests or personal relationships that could have appeared to influence 
+the work reported in this paper. 
+References 
+[1] “2018 INTERNET CRIME REPORT, ” pp. 1–28. 
+[2]Carcillo F, Le Borgne Y-A, Caelen O, Bontempi G. Streaming active learning 
+strategies for real-life credit card fraud detection: assessment and visualization. 
+Int. J. Data Sci. Anal. 2018. https://doi.org/10.1007/s41060-018-0116-z . 
+[3]Zheng L, Liu G, Yan C, Jiang C. Transaction fraud detection based on total order 
+relation and behavior diversity. IEEE Trans. Comput. Soc. Syst. 2018;5(3): 
+796–806. https://doi.org/10.1109/TCSS.2018.2856910 . 
+[4]ACFE, “Report to the Nations 2018 Global Study on Occupational Fraud and 
+Abuse, ” 2019. DOI: 10.1002/9781118929773.oth1. 
+[5]Xuan S, Liu G, Li Z, Zheng L, Wang S, Jiang C. Random forest for credit card fraud 
+detection. ICNSC 2018 - 15th IEEE Int. Conf. Networking, Sens. Control 2018: 
+1–6. https://doi.org/10.1109/ICNSC.2018.8361343 . 
+[6]Makki S, Assaghir Z, Taher Y, Haque R, Hacid MS, Zeineddine H. An 
+Experimental Study With Imbalanced Classification Approaches for Credit Card 
+Fraud Detection. IEEE Access 2019;7:93010 –22. https://doi.org/10.1109/ 
+ACCESS.2019.2927266 . 
+[7]West J, Bhattacharya M. Intelligent financial fraud detection: A comprehensive 
+review. Comput. Secur. 2016;57:47 –66. https://doi.org/10.1016/j. 
+cose.2015.09.005 . 
+[8]Baader G, Krcmar H. International Journal of Accounting Information Systems 
+Reducing false positives in fraud detection : Combining the red flag approach 
+with process mining. Int. J. Account. Inf. Syst. 2018;31(June):1 –16. https://doi. 
+org/10.1016/j.accinf.2018.03.004 . 
+[9]Krawczyk B. Learning from imbalanced data : open challenges and future 
+directions. Prog. Artif.Intell. 2016;5(4):221 –32. https://doi.org/10.1007/ 
+s13748-016-0094-0 . 
+[10] de S˘a AGC, Pereira ACM, Pappa GL. A customized classification algorithm for 
+credit card fraud detection. Eng. Appl. Artif. Intell. 2018. https://doi.org/ 
+10.1016/j.engappai.2018.03.011 . 
+[11] Johnson JM, Khoshgoftaar TM. Survey on deep learning with class imbalance. 
+J. Big Data 2019. https://doi.org/10.1186/s40537-019-0192-5 . 
+[12] Walke A. Comparison of Supervised and Unsupervised Fraud Detection , no. 
+September 2013. Springer International Publishing; 2019 . 
+[13] Salazar A, Safont G, Vergara L. Semi-Supervised Learning for Imbalanced 
+Classification of Credit Card Transaction. Proc. Int. Jt. Conf. Neural Networks 
+2018;2018-July:1 –7. https://doi.org/10.1109/IJCNN.2018.8489755 . 
+[14] Zareapoor M, Shamsolmoali P. Boosting prediction performance on imbalanced 
+dataset. Int. J. Inf. Commun. Technol. 2018. https://doi.org/10.1504/ 
+IJICT.2018.090556 . 
+[15] Mahmoudi N, Duman E. Detecting credit card fraud by Modified Fisher 
+Discriminant Analysis. Expert Syst. Appl. 2015. https://doi.org/10.1016/j. 
+eswa.2014.10.037 . 
+[16] Ali Shah A, Khurram Ehsan M, Ishaq K, Ali Z, Shoaib Farooq M. An Efficient 
+Hybrid Classifier Model for Anomaly Intrusion Detection System. IJCSNS Int. J. 
+Comput. Sci. Netw. Secur. 2018 . 
+[17] Popat RR, Chaudhary J. A Survey on Credit Card Fraud Detection Using Machine 
+Learning. In: Proceedings of the 2nd International Conference on Trends in 
+Electronics and Informatics, ICOEI 2018; 2018. https://doi.org/10.1109/ 
+ICOEI.2018.8553963 . 
+[18] Zafar A, Sirshar M. A Survey on Application of Data Mining Techniques; It’s 
+Proficiency In Fraud Detection of Credit Card. Res. Rev. J. Eng. Technol. 2018 . 
+[19] Carta S, Fenu G, ReforgiatoRecupero D, Saia R. Fraud detection for E-commerce 
+transactions by employing a prudential Multiple Consensus model. J. Inf. Secur. 
+Appl. 2019;46:13 –22. https://doi.org/10.1016/j.jisa.2019.02.007 . 
+[20] Kültür Y, Ça˚glayan MU. Hybrid approaches for detecting credit card fraud. Expert 
+Syst 2017. https://doi.org/10.1111/exsy.12191 . 
+[21] Carcillo F, Le Borgne YA, Caelen O, Kessaci Y, Obl˘e F, Bontempi G. Combining 
+unsupervised and supervised learning in credit card fraud detection. Inf. Sci. 
+(NY). 2019. https://doi.org/10.1016/j.ins.2019.05.042 . 
+[22] Rushin G, Stancil C, Sun M, Adams S, Beling P. Horse race analysis in credit card 
+fraud - Deep learning, logistic regression, and Gradient Boosted Tree. In: 2017 
+Systems and Information Engineering Design Symposium, SIEDS 2017; 2017. 
+https://doi.org/10.1109/SIEDS.2017.7937700 . 
+[23] Sohony I, Pratap R, Nambiar U. Ensemble learning for credit card fraud detection. 
+In: ACM International Conference Proceeding Series; 2018. https://doi.org/ 
+10.1145/3152494.3156815 . 
+[24] Jurgovsky J. Sequence classification for credit-card fraud detection. Expert Syst. 
+Appl. 2018. https://doi.org/10.1016/j.eswa.2018.01.037 . 
+[25] Bahl A. Recursive feature elimination in random forest classification supports 
+nanomaterial grouping. NanoImpact 2019. https://doi.org/10.1016/j. 
+impact.2019.100179 . Table 10 
+The performance comparison between our model RFC (HPO,RFE ) and some CCFD 
+recent models in case of imbalanced data.  
+Methods Accuracy Sensitivity AUPR Performance 
+Our hybrid method 99% 95% 0.81 Highest Performance 
+C5.0 96% 43% 0.6 High accuracy 
+SVM 96% 39% 0.63 High accuracy 
+ANN 96% 47% 0.62 High accuracy 
+LR 96% 49% 0.66 High AUPR 
+NB 93% 56% 0.5 High sensitivity 
+BBN 94% 15% 0.64 Good AUPR 
+KNN 95% 45% 0.29 Lowest AUPR  N. Rtayli and N. Enneya                                                                                                                                                                                                                      
+
+Journal of Information Security and Applications 55 (2020) 102596
+14[26] Rtayli N, Enneya N. Selection Features and Support Vector Machine for Credit 
+Card Risk Identification. Procedia Manuf 2020;46:941 –8. https://doi.org/ 
+10.1016/j.promfg.2020.05.012 . 
+[27] Robinson WN, Aria A. Sequential fraud detection for prepaid cards using hidden 
+Markov model divergence. Expert Syst. Appl. 2018;91:235 –51. https://doi.org/ 
+10.1016/j.eswa.2017.08.043 . 
+[28] Caron M, Bojanowski P, Joulin A, Douze M. Deep clustering for unsupervised 
+learning of visual features. In: Lecture Notes in Computer Science (including 
+subseries Lecture Notes in Artificial Intelligence and Lecture Notes in 
+Bioinformatics); 2018. https://doi.org/10.1007/978-3-030-01264-9_9 . 
+[29] Saraswathi E, Kulkarni P, Khalil MN, Nigam SC. Credit card fraud prediction and 
+detection using artificial neural network and self-organizing maps. In: 
+Proceedings of the 3rd International Conference on Computing Methodologies 
+and Communication, ICCMC 2019; 2019. https://doi.org/10.1109/ 
+ICCMC.2019.8819758 . 
+[30] Bansal M, Dept SCSE. Credit Card Fraud Detection Using Self Organised Map. Int. 
+J. Inf. Comput. Technol. 2014 . 
+[31] Liu JM, Tian J, Cai ZX, Zhou Y, Luo RH, Wang RR. A hybrid semi-supervised 
+approach for financial fraud detection. Proc. 2017 Int. Conf. Mach. Learn. Cybern. 
+ICMLC 2017 2017;1:217 –22. https://doi.org/10.1109/ICMLC.2017.8107767 . 
+[32] Abdullah FM. Using big data analytics to predict and reduce cyber crimes. Int. J. 
+Mech. Eng. Technol. 2019 . 
+[33] Zareapoor M, Shamsolmoali P. Application of credit card fraud detection: Based 
+on bagging ensemble classifier. In: Procedia Computer Science; 2015. https://doi. 
+org/10.1016/j.procs.2015.04.201 . 
+[34] Lever J, Krzywinski M, Altman N. Classification evaluation. Nat. Methods 2016. 
+https://doi.org/10.1038/nmeth.3945 . 
+[35] Correa Bahnsen A, Aouada D, Stojanovic A, Ottersten B. Feature engineering 
+strategies for credit card fraud detection. Expert Syst. Appl. 2016. https://doi. 
+org/10.1016/j.eswa.2015.12.030 . 
+[36] Salazar A, Safont G, Rodriguez A, Vergara L. New Perspectives of Pattern 
+Recognition for Automatic Credit Card Fraud Detection. In: Encyclopedia of 
+Information Science and Technology, Fourth Edition; 2017 . 
+[37] Nami S, Shajari M. Cost-sensitive payment card fraud detection based on dynamic 
+random forest and k-nearest neighbors. Expert Syst. Appl. 2018. https://doi.org/ 
+10.1016/j.eswa.2018.06.011 . 
+[38] Zareapoor M, Shamsolmoali P, Kumar Jain D, Wang H, Yang J. Kernelized 
+support vector machine with deep learning: An efficient approach for extreme 
+multiclass dataset. Pattern Recognit. Lett. 2018. https://doi.org/10.1016/j. 
+patrec.2017.09.018 . 
+[39] Kumari P, Mishra SP. Analysis of Credit Card Fraud Detection Using Fusion 
+Classifiers. In: Advances in Intelligent Systems and Computing; 2019. https://doi. 
+org/10.1007/978-981-10-8055-5_11 . 
+[40] Wei W, Li J, Cao L, Ou Y, Chen J. Effective detection of sophisticated online 
+banking fraud on extremely imbalanced data. World Wide Web 2013. https://doi. 
+org/10.1007/s11280-012-0178-0 . 
+[41] P. C., A. D., and L. V.. Minority report in fraud detection: classification of skewed 
+data. SIGKDD Explor. Newsl. 2004 http://doi.acm.org/10.1145/1007730.1 
+007738 . 
+[42] Bolton RJ, Hand DJ. Statistical fraud detection: A review. Statistical Science 
+2002. https://doi.org/10.1214/ss/1042727940 . 
+[43] Uniform object generation for optimizing one-class classifiers. J. Mach. Learn. 
+Res. - JMLR 2002 . 
+[44] Weston DJ, Hand DJ, Adams NM, Whitrow C, Juszczak P. Plastic card fraud 
+detection using peer group analysis. Adv. Data Anal. Classif. 2008. https://doi. 
+org/10.1007/s11634-008-0021-8 . 
+[45] Duman E, Ozcelik MH. Detecting credit card fraud by genetic algorithm and 
+scatter search. Expert Syst. Appl. 2011. https://doi.org/10.1016/j. 
+eswa.2011.04.110 . 
+[46] Bahnsen AC, Stojanovic A, Aouada D, Ottersten B. Cost sensitive credit card fraud 
+detection using bayes minimum risk. In: Proceedings - 2013 12th International 
+Conference on Machine Learning and Applications, ICMLA 2013; 2013. https:// 
+doi.org/10.1109/ICMLA.2013.68 . 
+[47] Kamaruddin SK, Ravi V. Credit card fraud detection using big data analytics: Use 
+of PSOAANN based one-class classification. In: ACM International Conference 
+Proceeding Series; 2016. https://doi.org/10.1145/2980258.2980319 . 
+[48] Hormozi H, Hormozi E, Akbari MK, Javan MS. Credit cards fraud detection by 
+negative selection algorithm on hadoop. In: IKT 2013 - 2013 5th Conference on 
+Information and Knowledge Technology; 2013. https://doi.org/10.1109/ 
+IKT.2013.6620035 . 
+[49] Ramakalyani K, Umadevi D. Fraud Detection of Credit Card Payment System by 
+Genetic Algorithm. Int. J. Sci. Eng. Res. 2012. https://doi.org/10.1109/ 
+ICCCET.2011.5762457 . 
+[50] Bentley PJ, Kim J, Jung G, Choi J. Fuzzy Darwinian Detection of Credit Card 
+Fraud. 14th Annu. Fall Symp. Korean Inf. Process. 2000 . 
+[51] Ganji VR, Mannem SNP. Credit card fraud detection using anti-k nearest neighbor 
+algorithm. Int. J. Comput. Sci. Eng. 2012 . 
+[52] Bhattacharyya S, Jha S, Tharakunnel K, Westland JC. Data mining for credit card 
+fraud: A comparative study. Decis. Support Syst. 2011;50(3):602 –13. https://doi. 
+org/10.1016/j.dss.2010.08.008 . 
+[53] Ogwueleka FN. Data mining application in credit-card Fraud detection system. 
+J. Eng. Sci. Technol. 2011 . 
+[54] Patidar R, Sharma L. Credit Card Fraud Detection Using Neural Network. India 
+Int. J. Soft Comput. Eng. 2011;9194145521(1):13 –4 [Online]. Available: http 
+s://pdfs.semanticscholar.org/0419/c275f05841d87ab9a4c9767a4f997b61a50e. 
+pdf. [55] Syeda M, Zhang YQ, Pan Y. Parallel granular neural networks for fast credit card 
+fraud detection. In: IEEE International Conference on Fuzzy Systems; 2002. 
+https://doi.org/10.1109/fuzz.2002.1005055 . 
+[56] Srivastava A, Kundu A, Sural S, Majumdar AK. Credit card fraud detection using 
+Hidden Markov Model. In: IEEE Transactions on Dependable and Secure 
+Computing; 2008. https://doi.org/10.1109/TDSC.2007.70228 . 
+[57] Deng H, Xu R. Model selection for anomaly detection in wireless ad hoc networks. 
+In: Proceedings of the 2007 IEEE Symposium on Computational Intelligence and 
+Data Mining, CIDM 2007; 2007. https://doi.org/10.1109/CIDM.2007.368922 . 
+[58] Minegishi T, Niimi A. Detection of fraud use of credit card by extended VFDT. In: 
+World Congress on Internet Security, WorldCIS-2011; 2011 . 
+[59] P˚as˚aric˚a AE. Card fraud detection using learning machines. Lxiv 2014 . 
+[60] B.Subashini and K.Chitra, “Enhanced System for Revealing Fraudulence in Credit 
+Card Approval, ” vol. 2, no. 8, pp. 936–949, 2013. 
+[61] Brabazon A, Cahill J, Keenan P, Walsh D. Identifying online credit card fraud 
+using artificial immune systems. In: 2010 IEEE World Congress on Computational 
+Intelligence, WCCI 2010 - 2010 IEEE Congress on Evolutionary Computation, CEC 
+2010; 2010. https://doi.org/10.1109/CEC.2010.5586154 . 
+[62] Wong N, Ray P, Stephens G, Lewis L. Artificial immune systems for the detection 
+of credit card fraud: An architecture, prototype and preliminary results. Inf. Syst. 
+J. 2012. https://doi.org/10.1111/j.1365-2575.2011.00369.x . 
+[63] Saia R. A Discrete Wavelet Transform Approach to Fraud Detection. In: Netw. 
+Syst. Secur. 11th Int. Conf. NSS 2017, Helsinki, Finland, August 21–23, 2017, 
+Proc. 2; 2017. p. 112–27. https://doi.org/10.1007/978-3-319-64701-2 . 
+[64] Saia R, Carta S. A linear-dependence-based approach to design proactive credit 
+scoring models. IC3K 2016 - Proc. 8th Int. Jt. Conf. Knowl. Discov.Knowl.Eng. 
+Knowl.Manag. 2016;1(Ic3k):111 –20. https://doi.org/10.5220/ 
+0006066701110120 . 
+[65] Saia R, Carta S. Evaluating credit card transactions in the frequency domain for a 
+proactive fraud detection approach. ICETE 2017 - Proc. 14th Int. Jt. Conf. E-bus. 
+Telecommun. 2017;4(Icete):335 –42. https://doi.org/10.5220/ 
+0006425803350342 . 
+[66] Vergara L, Salazar A, Belda J, Safont G, Moral S, Iglesias S. Signal processing on 
+graphs for improving automatic credit card fraud detection. In: Proceedings - 
+International Carnahan Conference on Security Technology; 2017. https://doi. 
+org/10.1109/CCST.2017.8167820 . 
+[67] Zareapoor M, Yang J. A Novel Strategy for Mining Highly Imbalanced Data in 
+Credit Card Transactions. Intell. Autom. Soft Comput. 2017. https://doi.org/ 
+10.1080/10798587.2017.1321228 . 
+[68] RTAYLI N, ENNEYA N. Credit Card Risk Detection based on Feature-Filter and 
+Fraud Identification. 2019 Third Int. Conf. Intell. Comput. Data Sci. 2019:1 –8. 
+[69] Roy A, Sun J, Mahoney R, Alonzi L, Adams S, Beling P. Deep learning detecting 
+fraud in credit card transactions. In: 2018 Systems and Information Engineering 
+Design Symposium, SIEDS 2018; 2018. https://doi.org/10.1109/ 
+SIEDS.2018.8374722 . 
+[70] C.Mishra, D. L.Gupta, and R.Singh, “Credit Card Fraud Identification Using 
+Artificial Neural Networks, ” vol. 04, no. 07, pp. 151–159, 2017. 
+[71] Goel V, Jangir V, Shankar VG. DataCan: Robust Approach for Genome Cancer 
+Data Analysis. In: Advances in Intelligent Systems and Computing; 2020. https:// 
+doi.org/10.1007/978-981-13-9364-8_12 . 
+[72] “Credit card Fraud data - dataset by raghu543 | data.world. ” https://data. 
+world/raghu543/credit-card-fraud-data (accessed Sep. 17, 2019). 
+[73] “Synthetic Financial Datasets For Fraud Detection | Kaggle. ”https://www.kaggle. 
+com/ntnu-testimon/paysim1 (accessed Jan. 18, 2020). 
+[74] “Index of /datasets/. ” https://packages.revolutionanalytics.com/datasets/ 
+(accessed Jan. 18, 2020). 
+[75] Taneja S, Technique SMO. Application of Balancing Techniques with Ensemble 
+Approach for Credit Card Fraud Detection. 2019 Int. Conf. Comput. Power 
+Commun. Technol. 2019:753 –8. 
+[76] Miao Y, Ruan Z, Pan L, Zhang J, Xiang Y, Wang Y. Comprehensive analysis of 
+network traffic data. In: Proceedings - 2016 16th IEEE International Conference 
+on Computer and Information Technology, CIT 2016, 2016 6th International 
+Symposium on Cloud and Service Computing, IEEE SC2 2016 and 2016 
+International Symposium on Security and Privacy in Social Netwo; 2017. https:// 
+doi.org/10.1109/CIT.2016.22 . 
+[77] Singh A, Jain A. Adaptive Credit Card Fraud Detection Techniques Based on 
+Feature Selection Method. In: Advances in Intelligent Systems and Computing; 
+2019. https://doi.org/10.1007/978-981-13-6861-5_15 . 
+[78] Yan K, Zhang D. Feature selection and analysis on correlated gas sensor data with 
+recursive feature elimination. Sensors Actuators, B Chem 2015. https://doi.org/ 
+10.1016/j.snb.2015.02.025 . 
+[79] Jim˘enez F, S˘anchez G, García JM, Sciavicco G, Miralles L. Multi-objective 
+evolutionary feature selection for online sales forecasting. Neurocomputing 2017. 
+https://doi.org/10.1016/j.neucom.2016.12.045 . 
+[80] Verma NK, Salour A. Intelligent Condition Based Monitoring 2020;256 . 
+[81] Alelyani S, Tang J, Liu H. Feature Selection for Clustering: A Review. In: Data 
+Clustering; 2019 . 
+[82] Nkiama H, Zainudeen S, Saidu M. A Subset Feature Elimination Mechanism for 
+Intrusion Detection System. Int. J. Adv. Comput. Sci. Appl. 2016. https://doi.org/ 
+10.14569/ijacsa.2016.070419 . 
+[83] Dey SK, Rahman MM. Flow based anomaly detection in software defined 
+networking: A deep learning approach with feature selection method. In: 4th Int. 
+Conf. Electr. Eng. Inf. Commun. Technol. iCEEiCT 2018; 2019. p. 630–5. https:// 
+doi.org/10.1109/CEEICT.2018.8628069 . N. Rtayli and N. Enneya                                                                                                                                                                                                                      
+
+Journal of Information Security and Applications 55 (2020) 102596
+15[84] D.Project, I. N.Computer, S.Cycle, and C.Science, “Detecting fraudulent users 
+using behaviour analysis Detecting fraudulent users using behaviour analysis,” 
+2017. 
+[85] Guyon I, Weston J, Barnhill S, Vapnik V. Gene selection for cancer classification 
+using support vector machines. Mach. Learn. 2002 DOI: 10.1023/A: 
+1012487302797. 
+[86] Humbird KD, Peterson JL, Mcclarren RG. Deep Neural Network Initialization 
+With Decision Trees. IEEE Trans. Neural Networks Learn. Syst. 2019;30(5): 
+1286–95. https://doi.org/10.1109/TNNLS.2018.2869694. 
+[87] Raczko E, Zagajewski B. Comparison of support vector machine, random forest 
+and neural network classifiers for tree species classification on airborne 
+hyperspectral APEX images. Eur. J. Remote Sens. 2017;50(1):144–54. https:// 
+doi.org/10.1080/22797254.2017.1299557. 
+[88] Aggarwal CC. Data classification: Algorithms and applications 2014. 
+[89] Devi D, Biswas SK, Purkayastha B. A Cost-sensitive weighted Random Forest 
+Technique for Credit Card Fraud Detection. In: 2019 10th Int. Conf. Comput. 
+Commun.Netw. Technol. ICCCNT 2019; 2019. p. 1–6. https://doi.org/10.1109/ 
+ICCCNT45670.2019.8944885. 
+[90] Cutler A, Cutler DR, Stevens JR. Random forests. In: Ensemble Machine Learning: 
+Methods and Applications; 2012. 
+[91] “Receiver operating characteristic (ROC) curve for Fit Binary Logistic Model - 
+Minitab.”https://support.minitab.com/en-us/minitab/19/help-and-how-to/st 
+atistical-modeling/regression/how-to/fit-binary-logistic-model/interpret-the-res 
+ults/all-statistics-and-graphs/receiver-operating-characteristic-roc-curve 
+/(accessed May 09, 2020). 
+[92] Bergmeir C, Hyndman RJ, Koo B. Validity of Cross-Validation for Evaluating Time 
+Series Prediction. Comput. Stat. Data Anal. 2018. 
+[93] Bergmeir C, Hyndman RJ, Koo B. A note on the validity of cross-validation for 
+evaluating autoregressive time series prediction. Comput. Stat. Data Anal. 2018. 
+https://doi.org/10.1016/j.csda.2017.11.003. 
+[94] Khan SA, Ali Rana Z. Evaluating Performance of Software Defect Prediction 
+Models Using Area under Precision-Recall Curve (AUC-PR). 2019 2nd Int. Conf. Adv. Comput. Sci. ICACS 2019 2019;1:1–6. https://doi.org/10.23919/ 
+ICACS.2019.8689135. 
+[95] Rha RKJ, Cisuganthe R. Recursive Feature Elimination and Clustering Technique 
+for Network Anomaly Detection. In: Proc. 2018 Int. Conf. Curr. Trends Towar. 
+Converging Technol. ICCTCT 2018; 2018. p. 1–6. https://doi.org/10.1109/ 
+ICCTCT.2018.8551043. 
+[96] Kittidachanan K. Anomaly Detection based on GS-OCSVM Classification. In: 2020 
+12th Int. Conf. Knowl. Smart Technol; 2020. p. 64–9. 
+[97] Randhawa K, Loo CK, Seera M, Lim CP, Nandi AK. Credit Card Fraud Detection 
+Using AdaBoost and Majority Voting. IEEE Access 2018. https://doi.org/ 
+10.1109/ACCESS.2018.2806420. 
+[98] Zamini M, Montazer G. Credit Card Fraud Detection using autoencoder based 
+clustering. In: 9th International Symposium on Telecommunication: With 
+Emphasis on Information and Communication Technology, IST 2018; 2019. 
+https://doi.org/10.1109/ISTEL.2018.8661129. 
+[99] FredrikWesterlund, “CREDIT CARD FRAUD DETECTION (Machine learning),” 
+2017. 
+[100] Fiore U, De Santis A, Perla F, Zanetti P, Palmieri F. Using Generative Adversarial 
+Networks for Improving Classification Effectiveness in Credit Card Fraud 
+Detection. Inf. Sci. (NY). 2017. https://doi.org/10.1016/j.ins.2017.12.030. 
+[101] I. I.Roman Tkachenko, AnastasiyaDoroshenko and B. H.YuriiTsymbal, “Imbalance 
+Data Classification via Neural-Like Structures of Geometric Transformations 
+Model: Local and Global Approaches,” p. 8, 2019, DOI: 10.1007/978-3-319- 
+91008-6. 
+[102] Dal Pozzolo A, Boracchi G, Caelen O, Alippi C, Bontempi G. Credit card fraud 
+detection and concept-drift adaptation with delayed supervised information. 
+Proc. Int. Jt. Conf. Neural Networks 2015;2015-Septe. https://doi.org/10.1109/ 
+IJCNN.2015.7280527. 
+[103] Abdallah A, Maarof MA, Zainal A. Fraud detection system: A survey. Journal of 
+Network and Computer Applications 2016. https://doi.org/10.1016/j. 
+jnca.2016.04.007. N. Rtayli and N. Enneya                                                                                                                                                                                                                      
+

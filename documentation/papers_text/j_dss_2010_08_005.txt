@@ -1,0 +1,164 @@
+Quantitative methods for Detection of Financial Fraud
+Fraud, de ﬁned as ‘criminal deception or the use of false
+r e p r e s e n t a t i o n st og a i na nu n j u s ta d v a n t a g e ’in the Oxford
+Dictionary, is as old as humanity itself, and can take an unlimited
+variety of forms. These days, globalization is creating the center
+stage for large scale business frauds. The dramatic Enron case was
+possibly the tip of the iceberg and was followed by discovery of
+ﬁnancial fraud in companies like Tyco, Worldcom, among others.
+Financial frauds are occurring in every part of the globe and possibly
+in every type of business. UK based fraud prevention service CIFAS
+have revealed that more than 360 million worth of ﬁnancial fraud
+was prevented in the ﬁrst half of 2006. At around the same time,
+Zhejiang Securities of China was ﬁned $61 million for conducting
+illegal trades. Financial fraud has become a critical problem for all
+businesses at this time and has led to the passing of the Sarbanes
+Oxley Act of 2002.
+Fraud detection as part of information forensics, has become
+indispensable these days in order to save the interests of businesses
+and stockholders. Financial fraud detection is traditionally conducted
+byﬁnancial analysts such as CPAs or auditors. These ﬁnancial analysts
+compare ﬁnancial ratios of solvency, pro ﬁtability, growth etc.
+between several periods and between similar ﬁrms in the same
+industry after careful reading of ﬁnancial statements and carrying out
+the full set of audit analysis examination procedures step by step.
+However, ﬁnancial fraud detection is not restricted to ﬁnancial
+statement fraud but also applicable to fraudulent practices in making
+insurance payment claims, mortgage claims, credit card transactions,
+web-based ﬁnancial transactions etc. With the development of
+information technology and decision sciences, quantitative research
+models have been developed to automate and help reduce the manual
+operations of a screening/checking process during fraud detection.
+Financial fraud is often detected using Benford's Law which states that
+frequency of occurrence of digits in ﬁnancial statements should follow
+a particular pattern. Other tools used in ﬁnancial fraud detection have
+included data analysis techniques like regression, discriminant
+analysis, clustering, neural networks, decision trees, Bayesian belief
+networks, support vector machines, self organizing maps, among
+others. Lately text mining has also been used for this purpose. These
+statistical and machine learning based quantitative models use
+various items of the ﬁnancial statements or ﬁnancial transactions as
+inputs, and classify companies as fraudulent or non-fraudulent orpredict the probability that a company is likely to be adopting
+fraudulent ﬁnancial practices.
+This special issue is devoted to advancing research in quantitative
+models for fraud detection by publishing forward-thinking and
+rigorous research that are focused on designing, managing, and
+evaluating the detection activities of ﬁnancial fraud in today's
+competitive business environment. The goal of this special issue isto encourage research using quantitative models to solve different
+types of problems on fraud detection. The collection of nine papers as
+part of this special issue presents an interdisciplinary approach in
+solving problems related to detection of various types of ﬁnancial
+fraud. Both analytical models and empirical research are used in these
+papers.
+In the following paragraphs, we brie ﬂy explain the objectives and
+key contributions to provide the reader with an overview of the
+articles included in this special issue.
+Theﬁrst paper by Ngai et al. provides a comprehensive review of
+the literature related to ﬁnancial fraud detection. They review 49
+articles published in the time period 1997 –2008, categorize the
+ﬁnancial fraud into four types, and identify the commonly used data
+mining techniques for ﬁnancial fraud detection. Their review also lists
+the challenges faced by researchers in this area. The limitations of
+existing static data mining methods for detection of ﬁnancial
+statement fraud are described in Zhou and Kapoor. They propose an
+adaptive framework based on response surface method that can
+modify the methods using domain knowledge gathered from the
+environment to improve the performance of these methods in a
+dynamic environment where the nature of ﬁnancial fraud evolves
+over time.
+Deceptive ﬁnancial statements may be a precursor to ﬁnancial
+fraud. These ﬁnancial statements may be cooked in terms of the
+reported numbers or in terms of the textual description that
+accompanies the numbers. Bhattacharya et al. focus on the manipula-
+tion of numbers in ﬁnancial statements. They propose an ANN based
+decision support system, and use simulated data for testing the
+applicability of the previously mentioned Benford's law in distin-
+guishing between naturally occurring and made-up numbers in
+ﬁnancial statements. Humpherys et al. use machine learning based
+methods like Naïve Bayes and decision trees on publicly available
+ﬁnancial statements to discover linguistic cues that can predict the
+presence of deception. They ﬁnd that fraudulent companies are
+verbose in their descriptions of ﬁnancial statements but lack in actual
+content. Their ﬁndings and insights can be highly useful for auditors
+who are interested in conducting detailed analysis of these state-
+ments. Glancy and Yadav use text mining methods to distinguish
+between companies that make fraudulent ﬁlings with those that don't
+by examining the textual content of the Management's Discussion andAnalysis in 69 actual 10-K ﬁlings with the SEC. They use expectation
+maximization and hierarchical clustering to discover that writers of
+fraudulent ﬁlings have prior knowledge about the deception that is
+hidden in the ﬁlings. Fraudulent transactions in credit cards are a
+matter of growing concern. Bhattacharyya et al. use support vector
+machines, random forests and logistic regression based data mining
+methods to distinguish fraudu lent and non-fraud credit cardDecision Support Systems 50 (2011) 557 –558
+0167-9236/$ –see front matter © 2010 Elsevier B.V. All rights reserved.
+doi:10.1016/j.dss.2010.08.005
+Contents lists available at ScienceDirect
+Decision Support Systems
+journal homepage: www.elsevier.com/locate/dss
+
+transactions using real life data. They show that random forest based
+methods are able to obtain good overall performance using a variety
+of performance measures.
+Apart from the more traditional channels such as ﬁnancial
+statements, ﬁnancial transactions fraud aimed at making ﬁnancial
+gains can also be seen in the online media. Often fraud exists in the
+form of manipulated reviews that are aimed at boosting sales ofsome target products. Using data gathered from the website of
+Amazon.com, Hu et al. show that manipulation of reviews takes
+place for inferior and unpopular products, and consumers are not
+always able to detect this manipulation. They also ﬁnd that the
+extent of manipulation differs between websites. Hu et al. use data
+related to variability in the perceived helpfulness of reviews to
+show that manipulation of reviews of books is existent, and
+particularly problematic for non-bestseller books, high-priced
+books, popular books although the extent of manipulation decreases
+over time. Online reviews management seems to be a new form of
+ﬁnancial fraud that is likely to affect consumers as more and more of
+them continue to depend on online reviews for making their
+purchases. Taking a broader view of fraud as violation of business
+rules, van der Aalst et al. describe the architecture of an online
+auditing tool that can be used to detect such nonconformance and
+alert auditors. They use Petri nets to model the business processes,
+and show that the online auditing tool can continuously and
+automatically check adherence to business rules by information
+systems, thereby relieving burden on the auditors. This wraps up
+the collection of nine very interesting papers that study various
+aspects of ﬁnancial fraud detection using a variety of quantitative
+methods and models.
+The guest editors would like to take this opportunity to thank the
+people who made this special issue possible. Our sincere thanks go to
+the Editor-in-Chief Prof. Andrew Whinston for giving us the
+opportunity to organize this special section. We also want to thank
+the contributing authors who submitted revisions to their papers
+within a short period of time. This special issue would not have been
+possible without their active participation and support. Special
+thanks are due to the reviewers for this special issue who did a
+tremendous job by providing constructive assessment of the papers
+in their reviews and by being so prompt in returning the reviews. The
+reviewers included: Alvin Leung, Anurag Agarwal, Daniel Chen,David Sundaram, Fidan Boylu, Gaurav Kapoor, Hasan Cavusoglu,
+J a c k i eR e e s ,J a m e sH a n s e n ,J o h nC a r l s o n ,K .L .M o o n ,K a u s h a lC h a r i ,
+K a u s h i kD u t t a ,L i n gH e ,M i c h a e lC h a u ,N a t a l i eC h u r y k ,N e n a d
+Mladenovic, Riyaz Sikora, Sung Ho Ha, Vadlamani Ravi, Wei Zhou,
+Xi Chen, and Yun Wan.About the guest editors:
+Indranil Bose is an associate professor at the School of
+Business, The University of Hong Kong. He holds a B. Tech.
+from the Indian Institute of Technology, MS from the
+University of Iowa, MS and Ph.D. from Purdue University.His research interests are in telecommunications, datamining, information security, and supply chain manage-ment. His publications have appeared in Communicationsof the ACM, Communications of AIS, Computers andOperations Research, Decision Support Systems, Ergonom-
+ics, European Journal of Operational Research, Information
+& Management, Journal of Organizational Computing andElectronic Commerce, Journal of the American Society forInformation Science and Technology, Operations Research
+Letters etc. He is listed in the International Who's Who of Professionals 2005 –2006,
+Marquis Who's Who in the World 2006, Marquis Who's Who in Asia 2007, MarquisWho's Who in Science and Engineering 2007, and Marquis Who's Who of EmergingLeaders 2007. He serves on the editorial board of Information & Management,
+Communications of AIS, and several other IS journals.
+Selwyn Piramuthu is a Professor in the Information
+Systems and Operations Management department at the
+University of Florida. His research interests include RFID-tagged systems as well as pattern recognition and itsapplication in supply chain management, computer-aidedmanufacturing, and ﬁnancial credit-risk analysis.
+Michael J. Shaw is a Professor and Hoeft Endowed Chair of
+Information Systems in the Department of BusinessAdministration at the University of Illinois at Urbana-
+Champaign. He is also the Director of Center for IT and e-
+Business there. He has published extensively with over 140papers in the information systems, e-business, and deci-sion support areas. He has been the Editor-in-Chief (with J.Becker) of the journal Information Systems and e-BusinessManagement, published by Springer, since its inaugurationin 2003. Mike's research has focused on studying how to
+make information technology bene ﬁcial to large enter-
+prises. Because of that interest he has been working withcompanies such as Motorola, GE, Wal-Mart, and Caterpillar
+on research projects. He is af ﬁliated with, in addition to his home department, National
+Center for Supercomputing Applications (NCSA) and Information Trust Institute (ITI).His most recent research has focused on the functions of Chief Information Of ﬁcers,
+service management, and IT governance.
+558 Quantitative methods for Detection of Financial Fraud
+

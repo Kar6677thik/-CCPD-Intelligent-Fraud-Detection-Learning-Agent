@@ -1,0 +1,1073 @@
+XGBoost: A Scalable Tree Boosting System
+Tianqi Chen
+University of Washington
+tqchen@cs.washington.eduCarlos Guestrin
+University of Washington
+guestrin@cs.washington.edu
+ABSTRACT
+Tree boosting is a highly eective and widely used machine
+learning method. In this paper, we describe a scalable end-
+to-end tree boosting system called XGBoost, which is used
+widely by data scientists to achieve state-of-the-art results
+on many machine learning challenges. We propose a novel
+sparsity-aware algorithm for sparse data and weighted quan-
+tile sketch for approximate tree learning. More importantly,
+we provide insights on cache access patterns, data compres-
+sion and sharding to build a scalable tree boosting system.
+By combining these insights, XGBoost scales beyond billions
+of examples using far fewer resources than existing systems.
+Keywords
+Large-scale Machine Learning
+1. INTRODUCTION
+Machine learning and data-driven approaches are becom-
+ing very important in many areas. Smart spam classiers
+protect our email by learning from massive amounts of s-
+pam data and user feedback; advertising systems learn to
+match the right ads with the right context; fraud detection
+systems protect banks from malicious attackers; anomaly
+event detection systems help experimental physicists to nd
+events that lead to new physics. There are two importan-
+t factors that drive these successful applications: usage of
+eective (statistical) models that capture the complex data
+dependencies and scalable learning systems that learn the
+model of interest from large datasets.
+Among the machine learning methods used in practice,
+gradient tree boosting [10]1is one technique that shines
+in many applications. Tree boosting has been shown to
+give state-of-the-art results on many standard classication
+benchmarks [16 ]. LambdaMART [5 ], a variant of tree boost-
+ing for ranking, achieves state-of-the-art result for ranking
+1Gradient tree boosting is also known as gradient boosting
+machine (GBM) or gradient boosted regression tree (GBRT)
+Permission to make digital or hard copies of all or part of this work for personal or
+classroom use is granted without fee provided that copies are not made or distributed
+for proﬁt or commercial advantage and that copies bear this notice and the full cita-
+tion on the ﬁrst page. Copyrights for components of this work owned by others than
+ACM must be honored. Abstracting with credit is permitted. To copy otherwise, or re-
+publish, to post on servers or to redistribute to lists, requires prior speciﬁc permission
+and/or a fee. Request permissions from permissions@acm.org.
+KDD ’16, August 13-17, 2016, San Francisco, CA, USA
+c2016 ACM. ISBN 978-1-4503-4232-2/16/08. . . $15.00
+DOI:http://dx.doi.org/10.1145/2939672.2939785problems. Besides being used as a stand-alone predictor, it
+is also incorporated into real-world production pipelines for
+ad click through rate prediction [15]. Finally, it is the de-
+facto choice of ensemble method and is used in challenges
+such as the Netix prize [3].
+In this paper, we describe XGBoost, a scalable machine
+learning system for tree boosting. The system is available
+as an open source package2. The impact of the system has
+been widely recognized in a number of machine learning and
+data mining challenges. Take the challenges hosted by the
+machine learning competition site Kaggle for example. A-
+mong the 29 challenge winning solutions3published at Kag-
+gle's blog during 2015, 17 solutions used XGBoost. Among
+these solutions, eight solely used XGBoost to train the mod-
+el, while most others combined XGBoost with neural net-
+s in ensembles. For comparison, the second most popular
+method, deep neural nets, was used in 11 solutions. The
+success of the system was also witnessed in KDDCup 2015,
+where XGBoost was used by every winning team in the top-
+10. Moreover, the winning teams reported that ensemble
+methods outperform a well-congured XGBoost by only a
+small amount [1 ].
+These results demonstrate that our system gives state-of-
+the-art results on a wide range of problems. Examples of
+the problems in these winning solutions include: store sales
+prediction; high energy physics event classication; web text
+classication; customer behavior prediction; motion detec-
+tion; ad click through rate prediction; malware classication;
+product categorization; hazard risk prediction; massive on-
+line course dropout rate prediction. While domain depen-
+dent data analysis and feature engineering play an important
+role in these solutions, the fact that XGBoost is the consen-
+sus choice of learner shows the impact and importance of
+our system and tree boosting.
+The most important factor behind the success of XGBoost
+is its scalability in all scenarios. The system runs more than
+ten times faster than existing popular solutions on a single
+machine and scales to billions of examples in distributed or
+memory-limited settings. The scalability of XGBoost is due
+to several important systems and algorithmic optimizations.
+These innovations include: a novel tree learning algorithm
+is for handling sparse data ; a theoretically justied weighted
+quantile sketch procedure enables handling instance weights
+in approximate tree learning. Parallel and distributed com-
+puting makes learning faster which enables quicker model ex-
+ploration. More importantly, XGBoost exploits out-of-core
+2https://github.com/dmlc/xgboost
+3Solutions come from of top-3 teams of each competitions.
+785
+
+
+computation and enables data scientists to process hundred
+millions of examples on a desktop. Finally, it is even more
+exciting to combine these techniques to make an end-to-end
+system that scales to even larger data with the least amount
+of cluster resources. The major contributions of this paper
+is listed as follows:
+We design and build a highly scalable end-to-end tree
+boosting system.
+We propose a theoretically justied weighted quantile
+sketch for ecient proposal calculation.
+We introduce a novel sparsity-aware algorithm for par-
+allel tree learning.
+We propose an eective cache-aware block structure
+for out-of-core tree learning.
+While there are some existing works on parallel tree boost-
+ing [22 ,23,19], the directions such as out-of-core compu-
+tation, cache-aware and sparsity-aware learning have not
+been explored. More importantly, an end-to-end system
+that combines all of these aspects gives a novel solution for
+real-world use-cases. This enables data scientists as well as
+researchers to build powerful variants of tree boosting al-
+gorithms [7 ,8]. Besides these major contributions, we also
+make additional improvements in proposing a regularized
+learning objective, which we will include for completeness.
+The remainder of the paper is organized as follows. We
+will rst review tree boosting and introduce a regularized
+objective in Sec. 2. We then describe the split nding meth-
+ods in Sec. 3as well as the system design in Sec. 4, including
+experimental results when relevant to provide quantitative
+support for each optimization we describe. Related work
+is discussed in Sec. 5. Detailed end-to-end evaluations are
+included in Sec. 6. Finally we conclude the paper in Sec. 7.
+2. TREE BOOSTING IN A NUTSHELL
+We review gradient tree boosting algorithms in this sec-
+tion. The derivation follows from the same idea in existing
+literatures in gradient boosting. Specicially the second order
+method is originated from Friedman et al. [12 ]. We make mi-
+nor improvements in the reguralized objective, which were
+found helpful in practice.
+2.1 Regularized Learning Objective
+For a given data set with nexamples and mfeatures
+D=f(xi;yi)g(jDj=n;xi2Rm;yi2R), a tree ensem-
+ble model (shown in Fig. 1) usesKadditive functions to
+predict the output.
+^yi=(xi) =KX
+k=1fk(xi); fk2F; (1)
+whereF=ff(x) =wq(x)g(q:Rm!T;w2RT) is the
+space of regression trees (also known as CART). Here qrep-
+resents the structure of each tree that maps an example to
+the corresponding leaf index. Tis the number of leaves in the
+tree. Each fkcorresponds to an independent tree structure
+qand leaf weights w. Unlike decision trees, each regression
+tree contains a continuous score on each of the leaf, we use
+wito represent score on i-th leaf. For a given example, we
+will use the decision rules in the trees (given by q) to classify
+Figure 1: Tree Ensemble Model. The nal predic-
+tion for a given example is the sum of predictions
+from each tree.
+it into the leaves and calculate the nal prediction by sum-
+ming up the score in the corresponding leaves (given by w).
+To learn the set of functions used in the model, we minimize
+the following regularized objective.
+L() =X
+il(^yi;yi) +X
+k
+(fk)
+where 
+(f) =T+1
+2kwk2(2)
+Herelis a dierentiable convex loss function that measures
+the dierence between the prediction ^ yiand the target yi.
+The second term 
+ penalizes the complexity of the model
+(i.e., the regression tree functions). The additional regular-
+ization term helps to smooth the nal learnt weights to avoid
+over-tting. Intuitively, the regularized objective will tend
+to select a model employing simple and predictive functions.
+A similar regularization technique has been used in Regu-
+larized greedy forest (RGF) [25 ] model. Our objective and
+the corresponding learning algorithm is simpler than RGF
+and easier to parallelize. When the regularization parame-
+ter is set to zero, the objective falls back to the traditional
+gradient tree boosting.
+2.2 Gradient Tree Boosting
+The tree ensemble model in Eq. (2 ) includes functions as
+parameters and cannot be optimized using traditional opti-
+mization methods in Euclidean space. Instead, the model
+is trained in an additive manner. Formally, let ^ y(t)
+ibe the
+prediction of the i-th instance at the t-th iteration, we will
+need to add ftto minimize the following objective.
+L(t)=nX
+i=1l(yi;^yi(t 1)+ft(xi)) + 
+(ft)
+This means we greedily add the ftthat most improves our
+model according to Eq. ( 2). Second-order approximation
+can be used to quickly optimize the objective in the general
+setting [ 12].
+L(t)'nX
+i=1[l(yi;^y(t 1)) +gift(xi) +1
+2hif2
+t(xi)] + 
+(ft)
+wheregi=@^y(t 1)l(yi;^y(t 1)) andhi=@2
+^y(t 1)l(yi;^y(t 1))
+are rst and second order gradient statistics on the loss func-
+tion. We can remove the constant terms to obtain the fol-
+lowing simplied objective at step t.
+~L(t)=nX
+i=1[gift(xi) +1
+2hif2
+t(xi)] + 
+(ft) (3)
+786
+
+
+Figure 2: Structure Score Calculation. We only
+need to sum up the gradient and second order gra-
+dient statistics on each leaf, then apply the scoring
+formula to get the quality score.
+DeneIj=fijq(xi) =jgas the instance set of leaf j. We
+can rewrite Eq (3 ) by expanding 
+ as follows
+~L(t)=nX
+i=1[gift(xi) +1
+2hif2
+t(xi)] +T+1
+2TX
+j=1w2
+j
+=TX
+j=1[(X
+i2Ijgi)wj+1
+2(X
+i2Ijhi+)w2
+j] +T(4)
+For a xed structure q(x), we can compute the optimal
+weightw
+jof leafjby
+w
+j= P
+i2IjgiP
+i2Ijhi+; (5)
+and calculate the corresponding optimal value by
+~L(t)(q) = 1
+2TX
+j=1(P
+i2Ijgi)2
+P
+i2Ijhi++T: (6)
+Eq (6 ) can be used as a scoring function to measure the
+quality of a tree structure q. This score is like the impurity
+score for evaluating decision trees, except that it is derived
+for a wider range of objective functions. Fig. 2illustrates
+how this score can be calculated.
+Normally it is impossible to enumerate all the possible
+tree structures q. A greedy algorithm that starts from a
+single leaf and iteratively adds branches to the tree is used
+instead. Assume that ILandIRare the instance sets of left
+and right nodes after the split. Lettting I=IL[IR, then
+the loss reduction after the split is given by
+Lsplit=1
+2"
+(P
+i2ILgi)2
+P
+i2ILhi++(P
+i2IRgi)2
+P
+i2IRhi+ (P
+i2Igi)2
+P
+i2Ihi+#
+ 
+(7)
+This formula is usually used in practice for evaluating the
+split candidates.
+2.3 Shrinkage and Column Subsampling
+Besides the regularized objective mentioned in Sec. 2.1,
+two additional techniques are used to further prevent over-
+tting. The rst technique is shrinkage introduced by Fried-
+man [ 11]. Shrinkage scales newly added weights by a factor
+after each step of tree boosting. Similar to a learning rate
+in tochastic optimization, shrinkage reduces the inuence of
+each individual tree and leaves space for future trees to im-
+prove the model. The second technique is column (feature)
+subsampling. This technique is used in RandomForest [4,Algorithm 1: Exact Greedy Algorithm for Split Finding
+Input :I, instance set of current node
+Input :d, feature dimension
+gain 0
+G P
+i2Igi,H P
+i2Ihi
+fork= 1 tomdo
+GL 0; HL 0
+forjin sorted(I, byxjk)do
+GL GL+gj; HL HL+hj
+GR G GL; HR H HL
+score max(score;G2
+L
+HL++G2
+R
+HR+ G2
+H+)
+end
+end
+Output : Split with max score
+Algorithm 2: Approximate Algorithm for Split Finding
+fork= 1 tomdo
+ProposeSk=fsk1;sk2;sklgby percentiles on feature k.
+Proposal can be done per tree (global), or per split(local).
+end
+fork= 1 tomdo
+Gkv =P
+j2fjjsk;vxjk>sk;v 1ggj
+Hkv =P
+j2fjjsk;vxjk>sk;v 1ghj
+end
+Follow same step as in previous section to nd max
+score only among proposed splits.
+13], It is implemented in a commercial software TreeNet4
+for gradient boosting, but is not implemented in existing
+opensource packages. According to user feedback, using col-
+umn sub-sampling prevents over-tting even more so than
+the traditional row sub-sampling (which is also supported).
+The usage of column sub-samples also speeds up computa-
+tions of the parallel algorithm described later.
+3. SPLIT FINDING ALGORITHMS
+3.1 Basic Exact Greedy Algorithm
+One of the key problems in tree learning is to nd the
+best split as indicated by Eq (7 ). In order to do so, a s-
+plit nding algorithm enumerates over all the possible splits
+on all the features. We call this the exact greedy algorithm .
+Most existing single machine tree boosting implementation-
+s, such as scikit-learn [ 20], R's gbm [ 21] as well as the single
+machine version of XGBoost support the exact greedy algo-
+rithm. The exact greedy algorithm is shown in Alg. 1. It
+is computationally demanding to enumerate all the possible
+splits for continuous features. In order to do so eciently,
+the algorithm must rst sort the data according to feature
+values and visit the data in sorted order to accumulate the
+gradient statistics for the structure score in Eq (7 ).
+3.2 Approximate Algorithm
+The exact greedy algorithm is very powerful since it enu-
+merates over all possible splitting points greedily. However,
+it is impossible to eciently do so when the data does not t
+entirely into memory. Same problem also arises in the dis-
+4https://www.salford-systems.com/products/treenet
+787
+
+
+0 10 20 30 40 50 60 70 80 90
+Number of Iterations0.750.760.770.780.790.800.810.820.83Test AUC
+exact greedy
+global eps=0.3
+local eps=0.3
+global eps=0.05Figure 3: Comparison of test AUC convergence on
+Higgs 10M dataset. The eps parameter corresponds
+to the accuracy of the approximate sketch. This
+roughly translates to 1 / eps buckets in the proposal.
+We nd that local proposals require fewer buckets,
+because it rene split candidates.
+tributed setting. To support eective gradient tree boosting
+in these two settings, an approximate algorithm is needed.
+We summarize an approximate framework, which resem-
+bles the ideas proposed in past literatures [17, 2,22], in
+Alg. 2. To summarize, the algorithm rst proposes candi-
+date splitting points according to percentiles of feature dis-
+tribution (a specic criteria will be given in Sec. 3.3). The
+algorithm then maps the continuous features into bucket-
+s split by these candidate points, aggregates the statistics
+and nds the best solution among proposals based on the
+aggregated statistics.
+There are two variants of the algorithm, depending on
+when the proposal is given. The global variant proposes all
+the candidate splits during the initial phase of tree construc-
+tion, and uses the same proposals for split nding at all level-
+s. The local variant re-proposes after each split. The global
+method requires less proposal steps than the local method.
+However, usually more candidate points are needed for the
+global proposal because candidates are not rened after each
+split. The local proposal renes the candidates after splits,
+and can potentially be more appropriate for deeper trees. A
+comparison of dierent algorithms on a Higgs boson dataset
+is given by Fig. 3. We nd that the local proposal indeed
+requires fewer candidates. The global proposal can be as
+accurate as the local one given enough candidates.
+Most existing approximate algorithms for distributed tree
+learning also follow this framework. Notably, it is also possi-
+ble to directly construct approximate histograms of gradient
+statistics [22 ]. It is also possible to use other variants of bin-
+ning strategies instead of quantile [17 ]. Quantile strategy
+benet from being distributable and recomputable, which
+we will detail in next subsection. From Fig. 3, we also nd
+that the quantile strategy can get the same accuracy as exact
+greedy given reasonable approximation level.
+Our system eciently supports exact greedy for the single
+machine setting, as well as approximate algorithm with both
+local and global proposal methods for all settings. Users can
+freely choose between the methods according to their needs.
+3.3 Weighted Quantile Sketch
+One important step in the approximate algorithm is to
+propose candidate split points. Usually percentiles of a fea-
+ture are used to make candidates distribute evenly on the da-
+Figure 4: Tree structure with default directions. An
+example will be classied into the default direction
+when the feature needed for the split is missing.
+ta. Formally, let multi-set Dk=f(x1k;h1);(x2k;h2)(xnk;hn)g
+represent the k-th feature values and second order gradient
+statistics of each training instances. We can dene a rank
+functionsrk:R![0;+1) as
+rk(z) =1P
+(x;h)2D khX
+(x;h)2D k;x<zh; (8)
+which represents the proportion of instances whose feature
+valuekis smaller than z. The goal is to nd candidate split
+pointsfsk1;sk2;sklg, such that
+jrk(sk;j) rk(sk;j+1)j<; sk1= min
+ixik;skl= max
+ixik:
+(9)
+Hereis an approximation factor. Intuitively, this means
+that there is roughly 1 =candidate points. Here each data
+point is weighted by hi. To see why hirepresents the weight,
+we can rewrite Eq ( 3) as
+nX
+i=11
+2hi(ft(xi) gi=hi)2+ 
+(ft) +constant;
+which is exactly weighted squared loss with labels gi=hiand
+weightshi. For large datasets, it is non-trivial to nd can-
+didate splits that satisfy the criteria. When every instance
+has equal weights, an existing algorithm called quantile s-
+ketch [ 14,24] solves the problem. However, there is no
+existing quantile sketch for the weighted datasets. There-
+fore, most existing approximate algorithms either resorted
+to sorting on a random subset of data which have a chance of
+failure or heuristics that do not have theoretical guarantee.
+To solve this problem, we introduced a novel distributed
+weighted quantile sketch algorithm that can handle weighted
+data with a provable theoretical guarantee . The general idea
+is to propose a data structure that supports merge andprune
+operations, with each operation proven to maintain a certain
+accuracy level. A detailed description of the algorithm as
+well as proofs are given in the supplementary material5(link
+in the footnote).
+3.4 Sparsity-aware Split Finding
+In many real-world problems, it is quite common for the
+input xto be sparse. There are multiple possible causes
+for sparsity: 1) presence of missing values in the data; 2)
+frequent zero entries in the statistics; and, 3) artifacts of
+feature engineering such as one-hot encoding. It is impor-
+tant to make the algorithm aware of the sparsity pattern in
+the data. In order to do so, we propose to add a default
+direction in each tree node, which is shown in Fig. 4. When
+a value is missing in the sparse matrix x, the instance is
+5Link to the supplementary material
+http://homes.cs.washington.edu/~tqchen/pdf/xgboost-supp.pdf
+788
+
+
+Figure 6: Block structure for parallel learning. Each column in a block is sorted by the corresponding feature
+value. A linear scan over one column in the block is sucient to enumerate all the split points.
+Algorithm 3: Sparsity-aware Split Finding
+Input:I, instance set of current node
+Input:Ik=fi2Ijxik6= missingg
+Input:d, feature dimension
+Also applies to the approximate setting, only collect
+statistics of non-missing entries into buckets
+gain 0
+G P
+i2I;gi,H P
+i2Ihi
+fork= 1 tomdo
+// enumerate missing value goto right
+GL 0; HL 0
+forjin sorted(Ik, ascent order by xjk)do
+GL GL+gj; HL HL+hj
+GR G GL; HR H HL
+score max(score;G2
+L
+HL++G2
+R
+HR+ G2
+H+)
+end
+// enumerate missing value goto left
+GR 0; HR 0
+forjin sorted(Ik, descent order by xjk)do
+GR GR+gj; HR HR+hj
+GL G GR; HL H HR
+score max(score;G2
+L
+HL++G2
+R
+HR+ G2
+H+)
+end
+end
+Output : Split and default directions with max gain
+classied into the default direction. There are two choices
+of default direction in each branch. The optimal default di-
+rections are learnt from the data. The algorithm is shown in
+Alg.3. The key improvement is to only visit the non-missing
+entriesIk. The presented algorithm treats the non-presence
+as a missing value and learns the best direction to handle
+missing values. The same algorithm can also be applied
+when the non-presence corresponds to a user specied value
+by limiting the enumeration only to consistent solutions.
+To the best of our knowledge, most existing tree learning
+algorithms are either only optimized for dense data, or need
+specic procedures to handle limited cases such as categor-
+ical encoding. XGBoost handles all sparsity patterns in a
+unied way. More importantly, our method exploits the s-
+parsity to make computation complexity linear to number
+of non-missing entries in the input. Fig. 5shows the com-
+parison of sparsity aware and a naive implementation on an
+Allstate-10K dataset (description of dataset given in Sec. 6).
+We nd that the sparsity aware algorithm runs 50 times
+faster than the naive version. This conrms the importance
+of the sparsity aware algorithm.
+1 2 4 8 16
+Number of Threads0.031250.06250.1250.250.512481632Time per Tree(sec)Sparsity aware algorithmBasic algorithmFigure 5: Impact of the sparsity aware algorithm
+on Allstate-10K. The dataset is sparse mainly due
+to one-hot encoding. The sparsity aware algorithm
+is more than 50 times faster than the naive version
+that does not take sparsity into consideration.
+4. SYSTEM DESIGN
+4.1 Column Block for Parallel Learning
+The most time consuming part of tree learning is to get
+the data into sorted order. In order to reduce the cost of
+sorting, we propose to store the data in in-memory units,
+which we called block . Data in each block is stored in the
+compressed column (CSC) format, with each column sorted
+by the corresponding feature value. This input data layout
+only needs to be computed once before training, and can be
+reused in later iterations.
+In the exact greedy algorithm, we store the entire dataset
+in a single block and run the split search algorithm by lin-
+early scanning over the pre-sorted entries. We do the split
+nding of all leaves collectively, so one scan over the block
+will collect the statistics of the split candidates in all leaf
+branches. Fig. 6 shows how we transform a dataset into the
+format and nd the optimal split using the block structure.
+The block structure also helps when using the approxi-
+mate algorithms. Multiple blocks can be used in this case,
+with each block corresponding to subset of rows in the dataset.
+Dierent blocks can be distributed across machines, or s-
+tored on disk in the out-of-core setting. Using the sorted
+structure, the quantile nding step becomes a linear scan
+over the sorted columns. This is especially valuable for lo-
+cal proposal algorithms, where candidates are generated fre-
+quently at each branch. The binary search in histogram ag-
+gregation also becomes a linear time merge style algorithm.
+Collecting statistics for each column can be parallelized ,
+giving us a parallel algorithm for split nding. Importantly,
+the column block structure also supports column subsam-
+pling, as it is easy to select a subset of columns in a block.
+789
+
+
+1 2 4 8 16
+Number of Threads8163264128Time per Tree(sec)Basic algorithm
+Cache-aware algorithm(a) Allstate 10M
+1 2 4 8 16
+Number of Threads8163264128256Time per Tree(sec)Basic algorithm
+Cache-aware algorithm (b) Higgs 10M
+1 2 4 8 16
+Number of Threads0.250.51248Time per Tree(sec)Basic algorithm
+Cache-aware algorithm (c) Allstate 1M
+1 2 4 8 16
+Number of Threads0.250.51248Time per Tree(sec)Basic algorithm
+Cache-aware algorithm (d) Higgs 1M
+Figure 7: Impact of cache-aware prefetching in exact greedy algorithm. We nd that the cache-miss eect
+impacts the performance on the large datasets (10 million instances). Using cache aware prefetching improves
+the performance by factor of two when the dataset is large.
+Figure 8: Short range data dependency pattern
+that can cause stall due to cache miss.
+Time Complexity Analysis Letdbe the maximum depth
+of the tree and Kbe total number of trees. For the exac-
+t greedy algorithm, the time complexity of original spase
+aware algorithm is O(Kdkxk 0logn). Here we use kxk0to
+denote number of non-missing entries in the training data.
+On the other hand, tree boosting on the block structure on-
+ly costO(Kdkxk 0+kxk0logn). HereO(kxk 0logn) is the
+one time preprocessing cost that can be amortized. This
+analysis shows that the block structure helps to save an ad-
+ditional log nfactor, which is signicant when nis large. For
+the approximate algorithm, the time complexity of original
+algorithm with binary search is O(Kdkxk 0logq). Hereqis
+the number of proposal candidates in the dataset. While q
+is usually between 32 and 100, the log factor still introduces
+overhead. Using the block structure, we can reduce the time
+toO(Kdkxk0+kxk0logB), whereBis the maximum num-
+ber of rows in each block. Again we can save the additional
+logqfactor in computation.
+4.2 Cache-aware Access
+While the proposed block structure helps optimize the
+computation complexity of split nding, the new algorithm
+requires indirect fetches of gradient statistics by row index,
+since these values are accessed in order of feature. This is
+a non-continuous memory access. A naive implementation
+of split enumeration introduces immediate read/write de-
+pendency between the accumulation and the non-continuous
+memory fetch operation (see Fig. 8). This slows down split
+nding when the gradient statistics do not t into CPU cache
+and cache miss occur.
+For the exact greedy algorithm, we can alleviate the prob-
+lem by a cache-aware prefetching algorithm. Specically,
+we allocate an internal buer in each thread, fetch the gra-
+dient statistics into it, and then perform accumulation in
+a mini-batch manner. This prefetching changes the direct
+read/write dependency to a longer dependency and helps to
+reduce the runtime overhead when number of rows in the
+is large. Figure 7gives the comparison of cache-aware vs.
+1 2 4 8 16
+Number of Threads48163264128Time per Tree(sec)block size=2^12
+block size=2^16
+block size=2^20
+block size=2^24(a) Allstate 10M
+1 2 4 8 16
+Number of Threads48163264128256512Time per Tree(sec)block size=2^12
+block size=2^16
+block size=2^20
+block size=2^24
+(b) Higgs 10M
+Figure 9: The impact of block size in the approxi-
+mate algorithm. We nd that overly small blocks re-
+sults in inecient parallelization, while overly large
+blocks also slows down training due to cache misses.
+non cache-aware algorithm on the the Higgs and the All-
+state dataset. We nd that cache-aware implementation of
+the exact greedy algorithm runs twice as fast as the naive
+version when the dataset is large.
+For approximate algorithms, we solve the problem by choos-
+ing a correct block size. We dene the block size to be max-
+imum number of examples in contained in a block, as this
+reects the cache storage cost of gradient statistics. Choos-
+ing an overly small block size results in small workload for
+each thread and leads to inecient parallelization. On the
+other hand, overly large blocks result in cache misses, as the
+gradient statistics do not t into the CPU cache. A good
+choice of block size balances these two factors. We compared
+various choices of block size on two data sets. The results
+are given in Fig. 9. This result validates our discussion and
+790
+
+
+Table 1: Comparison of major tree boosting systems.
+Systemexact
+greedyapproximate
+globalapproximate
+localout-of-coresparsity
+awareparallel
+XGBoost yes yes yes yes yes yes
+pGBRT no no yes no no yes
+Spark MLLib no yes no no partially yes
+H2O no yes no no partially yes
+scikit-learn yes no no no no no
+R GBM yes no no no partially no
+shows that choosing 216examples per block balances the
+cache property and parallelization.
+4.3 Blocks for Out-of-core Computation
+One goal of our system is to fully utilize a machine's re-
+sources to achieve scalable learning. Besides processors and
+memory, it is important to utilize disk space to handle data
+that does not t into main memory. To enable out-of-core
+computation, we divide the data into multiple blocks and
+store each block on disk. During computation, it is impor-
+tant to use an independent thread to pre-fetch the block into
+a main memory buer, so computation can happen in con-
+currence with disk reading. However, this does not entirely
+solve the problem since the disk reading takes most of the
+computation time. It is important to reduce the overhead
+and increase the throughput of disk IO. We mainly use two
+techniques to improve the out-of-core computation.
+Block Compression The rst technique we use is block
+compression. The block is compressed by columns, and de-
+compressed on the y by an independent thread when load-
+ing into main memory. This helps to trade some of the
+computation in decompression with the disk reading cost.
+We use a general purpose compression algorithm for com-
+pressing the features values. For the row index, we substract
+the row index by the begining index of the block and use a
+16bit integer to store each oset. This requires 216examples
+per block, which is conrmed to be a good setting. In most
+of the dataset we tested, we achieve roughly a 26% to 29%
+compression ratio.
+Block Sharding The second technique is to shard the data
+onto multiple disks in an alternative manner. A pre-fetcher
+thread is assigned to each disk and fetches the data into an
+in-memory buer. The training thread then alternatively
+reads the data from each buer. This helps to increase the
+throughput of disk reading when multiple disks are available.
+5. RELATED WORKS
+Our system implements gradient boosting [10], which per-
+forms additive optimization in functional space. Gradient
+tree boosting has been successfully used in classication [12 ],
+learning to rank [5 ], structured prediction [ 8] as well as other
+elds. XGBoost incorporates a regularized model to prevent
+overtting. This this resembles previous work on regularized
+greedy forest [25 ], but simplies the objective and algorithm
+for parallelization. Column sampling is a simple but eective
+technique borrowed from RandomForest [4]. While sparsity-
+aware learning is essential in other types of models such as
+linear models [9 ], few works on tree learning have considered
+this topic in a principled way. The algorithm proposed in
+this paper is the rst unied approach to handle all kinds of
+sparsity patterns.There are several existing works on parallelizing tree learn-
+ing [22,19]. Most of these algorithms fall into the approxi-
+mate framework described in this paper. Notably, it is also
+possible to partition data by columns [23 ] and apply the ex-
+act greedy algorithm. This is also supported in our frame-
+work, and the techniques such as cache-aware pre-fecthing
+can be used to benet this type of algorithm. While most
+existing works focus on the algorithmic aspect of paralleliza-
+tion, our work improves in two unexplored system direction-
+s: out-of-core computation and cache-aware learning. This
+gives us insights on how the system and the algorithm can
+be jointly optimized and provides an end-to-end system that
+can handle large scale problems with very limited computing
+resources. We also summarize the comparison between our
+system and existing opensource implementations in Table 1.
+Quantile summary (without weights) is a classical prob-
+lem in the database community [14 ,24]. However, the ap-
+proximate tree boosting algorithm reveals a more general
+problem { nding quantiles on weighted data. To the best
+of our knowledge, the weighted quantile sketch proposed in
+this paper is the rst method to solve this problem. The
+weighted quantile summary is also not specic to the tree
+learning and can benet other applications in data science
+and machine learning in the future.
+6. END TO END EV ALUATIONS
+6.1 System Implementation
+We implemented XGBoost as an open source package6.
+The package is portable and reusable. It supports various
+weighted classication and rank objective functions, as well
+as user dened objective function. It is available in popular
+languages such as python, R, Julia and integrates naturally
+with language native data science pipelines such as scikit-
+learn. The distributed version is built on top of the rabit
+library7for allreduce. The portability of XGBoost makes it
+available in many ecosystems, instead of only being tied to
+a specic platform. The distributed XGBoost runs natively
+on Hadoop, MPI Sun Grid engine. Recently, we also enable
+distributed XGBoost on jvm bigdata stacks such as Flink
+and Spark. The distributed version has also been integrated
+into cloud platform Tianchi8of Alibaba. We believe that
+there will be more integrations in the future.
+6.2 Dataset and Setup
+We used four datasets in our experiments. A summary of
+these datasets is given in Table 2. In some of the experi-
+6https://github.com/dmlc/xgboost
+7https://github.com/dmlc/rabit
+8https://tianchi.aliyun.com
+791
+
+
+Table 2: Dataset used in the Experiments.
+Dataset nm Task
+Allstate 10 M 4227 Insurance claim classication
+Higgs Boson 10 M 28 Event classication
+Yahoo LTRC 473K 700 Learning to Rank
+Criteo 1.7 B 67 Click through rate prediction
+ments, we use a randomly selected subset of the data either
+due to slow baselines or to demonstrate the performance of
+the algorithm with varying dataset size. We use a sux to
+denote the size in these cases. For example Allstate-10K
+means a subset of the Allstate dataset with 10K instances.
+The rst dataset we use is the Allstate insurance claim
+dataset9. The task is to predict the likelihood and cost of
+an insurance claim given dierent risk factors. In the exper-
+iment, we simplied the task to only predict the likelihood
+of an insurance claim. This dataset is used to evaluate the
+impact of sparsity-aware algorithm in Sec. 3.4. Most of the
+sparse features in this data come from one-hot encoding. We
+randomly select 10M instances as training set and use the
+rest as evaluation set.
+The second dataset is the Higgs boson dataset10from high
+energy physics. The data was produced using Monte Carlo
+simulations of physics events. It contains 21 kinematic prop-
+erties measured by the particle detectors in the accelerator.
+It also contains seven additional derived physics quantities
+of the particles. The task is to classify whether an event
+corresponds to the Higgs boson. We randomly select 10M
+instances as training set and use the rest as evaluation set.
+The third dataset is the Yahoo! learning to rank challenge
+dataset [6 ], which is one of the most commonly used bench-
+marks in learning to rank algorithms. The dataset contains
+20K web search queries, with each query corresponding to a
+list of around 22 documents. The task is to rank the docu-
+ments according to relevance of the query. We use the ocial
+train test split in our experiment.
+The last dataset is the criteo terabyte click log dataset11.
+We use this dataset to evaluate the scaling property of the
+system in the out-of-core and the distributed settings. The
+data contains 13 integer features and 26 ID features of user,
+item and advertiser information. Since a tree based model
+is better at handling continuous features, we preprocess the
+data by calculating the statistics of average CTR and count
+of ID features on the rst ten days, replacing the ID fea-
+tures by the corresponding count statistics during the next
+ten days for training. The training set after preprocessing
+contains 1.7 billion instances with 67 features (13 integer, 26
+average CTR statistics and 26 counts). The entire dataset
+is more than one terabyte in LibSVM format.
+We use the rst three datasets for the single machine par-
+allel setting, and the last dataset for the distributed and
+out-of-core settings. All the single machine experiments are
+conducted on a Dell PowerEdge R420 with two eight-core
+Intel Xeon (E5-2470) (2.3GHz) and 64GB of memory. If not
+specied, all the experiments are run using all the available
+cores in the machine. The machine settings of the distribut-
+ed and the out-of-core experiments will be described in the
+9https://www.kaggle.com/c/ClaimPredictionChallenge
+10https://archive.ics.uci.edu/ml/datasets/HIGGS
+11http://labs.criteo.com/downloads/download-terabyte-
+click-logs/Table 3: Comparison of Exact Greedy Methods with
+500 trees on Higgs-1M data.
+Method Time per Tree (sec) Test AUC
+XGBoost 0.6841 0.8304
+XGBoost (colsample=0.5) 0.6401 0.8245
+scikit-learn 28.51 0.8302
+R.gbm 1.032 0.6224
+1 2 4 8 16
+Number of Threads0.512481632Time per Tree(sec)XGBoostpGBRT
+Figure 10: Comparison between XGBoost and pG-
+BRT on Yahoo LTRC dataset.
+Table 4: Comparison of Learning to Rank with 500
+trees on Yahoo! LTRC Dataset
+Method Time per Tree (sec) NDCG@10
+XGBoost 0.826 0.7892
+XGBoost (colsample=0.5) 0.506 0.7913
+pGBRT [22 ] 2.576 0.7915
+corresponding section. In all the experiments, we boost trees
+with a common setting of maximum depth equals 8, shrink-
+age equals 0.1 and no column subsampling unless explicitly
+specied. We can nd similar results when we use other
+settings of maximum depth.
+6.3 Classiﬁcation
+In this section, we evaluate the performance of XGBoost
+on a single machine using the exact greedy algorithm on
+Higgs-1M data, by comparing it against two other common-
+ly used exact greedy tree boosting implementations. Since
+scikit-learn only handles non-sparse input, we choose the
+dense Higgs dataset for a fair comparison. We use the 1M
+subset to make scikit-learn nish running in reasonable time.
+Among the methods in comparison, R's GBM uses a greedy
+approach that only expands one branch of a tree, which
+makes it faster but can result in lower accuracy, while both
+scikit-learn and XGBoost learn a full tree. The results are
+shown in Table 3. Both XGBoost and scikit-learn give bet-
+ter performance than R's GBM, while XGBoost runs more
+than 10x faster than scikit-learn. In this experiment, we al-
+so nd column subsamples gives slightly worse performance
+than using all the features. This could due to the fact that
+there are few important features in this dataset and we can
+benet from greedily select from all the features.
+6.4 Learning to Rank
+We next evaluate the performance of XGBoost on the
+learning to rank problem. We compare against pGBRT [22 ],
+the best previously pubished system on this task. XGBoost
+792
+
+
+128 256 512 1024 2048
+Number of Training Examples (million)128256512102420484096Time per Tree(sec)Basic algorithmBlock compression
+Compression+shard
+Out of system ﬁle cache
+start from this pointFigure 11: Comparison of out-of-core methods on
+dierent subsets of criteo data. The missing data
+points are due to out of disk space. We can nd
+that basic algorithm can only handle 200M exam-
+ples. Adding compression gives 3x speedup, and
+sharding into two disks gives another 2x speedup.
+The system runs out of le cache start from 400M
+examples. The algorithm really has to rely on disk
+after this point. The compression+shard method
+has a less dramatic slowdown when running out of
+le cache, and exhibits a linear trend afterwards.
+runs exact greedy algorithm, while pGBRT only support an
+approximate algorithm. The results are shown in Table 4
+and Fig. 10. We nd that XGBoost runs faster. Interest-
+ingly, subsampling columns not only reduces running time,
+and but also gives a bit higher performance for this prob-
+lem. This could due to the fact that the subsampling helps
+prevent overtting, which is observed by many of the users.
+6.5 Out-of-core Experiment
+We also evaluate our system in the out-of-core setting on
+the criteo data. We conducted the experiment on one AWS
+c3.8xlarge machine (32 vcores, two 320 GB SSD, 60 GB
+RAM). The results are shown in Figure 11. We can nd
+that compression helps to speed up computation by factor of
+three, and sharding into two disks further gives 2x speedup.
+For this type of experiment, it is important to use a very
+large dataset to drain the system le cache for a real out-
+of-core setting. This is indeed our setup. We can observe a
+transition point when the system runs out of le cache. Note
+that the transition in the nal method is less dramatic. This
+is due to larger disk throughput and better utilization of
+computation resources. Our nal method is able to process
+1.7 billion examples on a single machine.
+6.6 Distributed Experiment
+Finally, we evaluate the system in the distributed setting.
+We set up a YARN cluster on EC2 with m3.2xlarge ma-
+chines, which is a very common choice for clusters. Each
+machine contains 8 virtual cores, 30GB of RAM and two
+80GB SSD local disks. The dataset is stored on AWS S3
+instead of HDFS to avoid purchasing persistent storage.
+We rst compare our system against two production-level
+distributed systems: Spark MLLib [18 ] and H2O12. We use
+32 m3.2xlarge machines and test the performance of the sys-
+12www.h2o.ai
+128 256 512 1024 2048
+Number of Training Examples (million)12825651210242048409681921638432768Total Running Time (sec)Spark MLLibH2O
+XGBoost(a) End-to-end time cost include data loading
+128 256 512 1024 2048
+Number of Training Examples (million)8163264128256512102420484096Time per Iteration (sec)Spark MLLib
+H2O
+XGBoost
+(b) Per iteration cost exclude data loading
+Figure 12: Comparison of dierent distributed sys-
+tems on 32 EC2 nodes for 10 iterations on dierent
+subset of criteo data. XGBoost runs more 10x than
+spark per iteration and 2.2x as H2O's optimized ver-
+sion (However, H2O is slow in loading the data, get-
+ting worse end-to-end time). Note that spark suers
+from drastic slow down when running out of mem-
+ory. XGBoost runs faster and scales smoothly to
+the full 1.7 billion examples with given resources by
+utilizing out-of-core computation.
+tems with various input size. Both of the baseline systems
+are in-memory analytics frameworks that need to store the
+data in RAM, while XGBoost can switch to out-of-core set-
+ting when it runs out of memory. The results are shown
+in Fig. 12. We can nd that XGBoost runs faster than
+the baseline systems. More importantly, it is able to take
+advantage of out-of-core computing and smoothly scale to
+all 1.7 billion examples with the given limited computing re-
+sources. The baseline systems are only able to handle subset
+of the data with the given resources. This experiment shows
+the advantage to bring all the system improvement togeth-
+er and solve a real-world scale problem. We also evaluate
+the scaling property of XGBoost by varying the number of
+machines. The results are shown in Fig. 13. We can nd
+XGBoost's performance scales linearly as we add more ma-
+chines. Importantly, XGBoost is able to handle the entire
+1.7 billion data with only four machines. This shows the
+system's potential to handle even larger data.
+793
+
+
+4 8 16 32
+Number of Machines12825651210242048Time per Iteration (sec)Figure 13: Scaling of XGBoost with dierent num-
+ber of machines on criteo full 1.7 billion dataset.
+Using more machines results in more le cache and
+makes the system run faster, causing the trend to
+be slightly super linear. XGBoost can process the
+entire dataset using as little as four machines, and s-
+cales smoothly by utilizing more available resources.
+7. CONCLUSION
+In this paper, we described the lessons we learnt when
+building XGBoost, a scalable tree boosting system that is
+widely used by data scientists and provides state-of-the-art
+results on many problems. We proposed a novel sparsity
+aware algorithm for handling sparse data and a theoretically
+justied weighted quantile sketch for approximate learning.
+Our experience shows that cache access patterns, data com-
+pression and sharding are essential elements for building a
+scalable end-to-end system for tree boosting. These lessons
+can be applied to other machine learning systems as well.
+By combining these insights, XGBoost is able to solve real-
+world scale problems using a minimal amount of resources.
+Acknowledgments
+We would like to thank Tyler B. Johnson, Marco Tulio Ribeiro,
+Sameer Singh, Arvind Krishnamurthy for their valuable feedback.
+We also sincerely thank Tong He, Bing Xu, Michael Benesty, Yuan
+Tang, Hongliang Liu, Qiang Kou, Nan Zhu and all other con-
+tributors in the XGBoost community. This work was supported
+in part by ONR (PECASE) N000141010672, NSF IIS 1258741
+and the TerraSwarm Research Center sponsored by MARCO and
+DARPA.
+8. REFERENCES
+[1] R. Bekkerman. The present and the future of the kdd cup
+competition: an outsider's perspective.
+[2] R. Bekkerman, M. Bilenko, and J. Langford. Scaling Up
+Machine Learning: Parallel and Distributed Approaches .
+Cambridge University Press, New York, NY, USA, 2011.
+[3] J. Bennett and S. Lanning. The netix prize. In
+Proceedings of the KDD Cup Workshop 2007 , pages 3{6,
+New York, Aug. 2007.
+[4] L. Breiman. Random forests. Maching Learning ,
+45(1):5{32, Oct. 2001.
+[5] C. Burges. From ranknet to lambdarank to lambdamart:
+An overview. Learning , 11:23{581, 2010.
+[6] O. Chapelle and Y. Chang. Yahoo! Learning to Rank
+Challenge Overview. Journal of Machine Learning
+Research - W & CP , 14:1{24, 2011.
+[7] T. Chen, H. Li, Q. Yang, and Y. Yu. General functional
+matrix factorization using gradient boosting. In Proceedingof 30th International Conference on Machine Learning
+(ICML'13) , volume 1, pages 436{444, 2013.
+[8] T. Chen, S. Singh, B. Taskar, and C. Guestrin. Ecient
+second-order gradient boosting for conditional random
+elds. In Proceeding of 18th Articial Intelligence and
+Statistics Conference (AISTATS'15) , volume 1, 2015.
+[9] R.-E. Fan, K.-W. Chang, C.-J. Hsieh, X.-R. Wang, and
+C.-J. Lin. LIBLINEAR: A library for large linear
+classication. Journal of Machine Learning Research ,
+9:1871{1874, 2008.
+[10] J. Friedman. Greedy function approximation: a gradient
+boosting machine. Annals of Statistics , 29(5):1189{1232,
+2001.
+[11] J. Friedman. Stochastic gradient boosting. Computational
+Statistics & Data Analysis , 38(4):367{378, 2002.
+[12] J. Friedman, T. Hastie, and R. Tibshirani. Additive logistic
+regression: a statistical view of boosting. Annals of
+Statistics , 28(2):337{407, 2000.
+[13] J. H. Friedman and B. E. Popescu. Importance sampled
+learning ensembles, 2003.
+[14] M. Greenwald and S. Khanna. Space-ecient online
+computation of quantile summaries. In Proceedings of the
+2001 ACM SIGMOD International Conference on
+Management of Data , pages 58{66, 2001.
+[15] X. He, J. Pan, O. Jin, T. Xu, B. Liu, T. Xu, Y. Shi,
+A. Atallah, R. Herbrich, S. Bowers, and J. Q. n. Candela.
+Practical lessons from predicting clicks on ads at facebook.
+InProceedings of the Eighth International Workshop on
+Data Mining for Online Advertising , ADKDD'14, 2014.
+[16] P. Li. Robust Logitboost and adaptive base class (ABC)
+Logitboost. In Proceedings of the Twenty-Sixth Conference
+Annual Conference on Uncertainty in Articial Intelligence
+(UAI'10) , pages 302{311, 2010.
+[17] P. Li, Q. Wu, and C. J. Burges. Mcrank: Learning to rank
+using multiple classication and gradient boosting. In
+Advances in Neural Information Processing Systems 20 ,
+pages 897{904. 2008.
+[18] X. Meng, J. Bradley, B. Yavuz, E. Sparks,
+S. Venkataraman, D. Liu, J. Freeman, D. Tsai, M. Amde,
+S. Owen, D. Xin, R. Xin, M. J. Franklin, R. Zadeh,
+M. Zaharia, and A. Talwalkar. MLlib: Machine learning in
+apache spark. Journal of Machine Learning Research ,
+17(34):1{7, 2016.
+[19] B. Panda, J. S. Herbach, S. Basu, and R. J. Bayardo.
+Planet: Massively parallel learning of tree ensembles with
+mapreduce. Proceeding of VLDB Endowment ,
+2(2):1426{1437, Aug. 2009.
+[20] F. Pedregosa, G. Varoquaux, A. Gramfort, V. Michel,
+B. Thirion, O. Grisel, M. Blondel, P. Prettenhofer,
+R. Weiss, V. Dubourg, J. Vanderplas, A. Passos,
+D. Cournapeau, M. Brucher, M. Perrot, and E. Duchesnay.
+Scikit-learn: Machine learning in Python. Journal of
+Machine Learning Research , 12:2825{2830, 2011.
+[21] G. Ridgeway. Generalized Boosted Models: A guide to the
+gbm package .
+[22] S. Tyree, K. Weinberger, K. Agrawal, and J. Paykin.
+Parallel boosted regression trees for web search ranking. In
+Proceedings of the 20th international conference on World
+wide web , pages 387{396. ACM, 2011.
+[23] J. Ye, J.-H. Chow, J. Chen, and Z. Zheng. Stochastic
+gradient boosted distributed decision trees. In Proceedings
+of the 18th ACM Conference on Information and
+Knowledge Management , CIKM '09.
+[24] Q. Zhang and W. Wang. A fast algorithm for approximate
+quantiles in high speed data streams. In Proceedings of the
+19th International Conference on Scientic and Statistical
+Database Management , 2007.
+[25] T. Zhang and R. Johnson. Learning nonlinear functions
+using regularized greedy forest. IEEE Transactions on
+Pattern Analysis and Machine Intelligence , 36(5), 2014.
+794
+
+

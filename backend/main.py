@@ -10,6 +10,7 @@ import asyncio
 import traceback
 import numpy as np
 import pandas as pd
+from contextlib import asynccontextmanager
 from datetime import datetime
 from typing import Optional, List
 
@@ -28,17 +29,6 @@ from backend.database import (
 from backend.ml_pipeline import FraudDetectionPipeline
 from backend.output_manager import generate_all_outputs
 
-# ─── App Setup ────────────────────────────────────────────────
-app = FastAPI(title="Fraud Detection Learning Agent", version="1.0.0")
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
 # ─── Global State ─────────────────────────────────────────────
 pipeline = FraudDetectionPipeline()
 training_in_progress = False
@@ -46,6 +36,32 @@ connected_websockets: List[WebSocket] = []
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 UPLOAD_DIR = os.path.join(BASE_DIR, "datasets")
 os.makedirs(UPLOAD_DIR, exist_ok=True)
+
+
+# ─── Lifespan Handler ────────────────────────────────────────
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Startup and shutdown lifecycle handler."""
+    # Startup
+    init_db()
+    if pipeline.load_models():
+        print("[OK] Pre-trained models loaded successfully")
+    else:
+        print("[WARN] No pre-trained models found. Please train models first.")
+    yield
+    # Shutdown (cleanup if needed)
+
+
+# ─── App Setup ────────────────────────────────────────────────
+app = FastAPI(title="Fraud Detection Learning Agent", version="1.0.0", lifespan=lifespan)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=False,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # ─── Pydantic Models ─────────────────────────────────────────
 class FeedbackRequest(BaseModel):
@@ -62,16 +78,6 @@ class SampleGeneratorRequest(BaseModel):
     num_transactions: int = 100
     fraud_ratio: float = 0.05
 
-# ─── Events ──────────────────────────────────────────────────
-@app.on_event("startup")
-async def startup():
-    init_db()
-    # Try to load pre-trained models
-    if pipeline.load_models():
-        print("✅ Pre-trained models loaded successfully")
-    else:
-        print("⚠️  No pre-trained models found. Please train models first.")
-
 # ─── WebSocket ───────────────────────────────────────────────
 @app.websocket("/ws/training")
 async def training_ws(websocket: WebSocket):
@@ -81,7 +87,10 @@ async def training_ws(websocket: WebSocket):
         while True:
             await websocket.receive_text()
     except WebSocketDisconnect:
-        connected_websockets.remove(websocket)
+        try:
+            connected_websockets.remove(websocket)
+        except ValueError:
+            pass  # Already removed
 
 async def broadcast_progress(model: str, message: str, progress: float):
     data = json.dumps({
@@ -97,7 +106,10 @@ async def broadcast_progress(model: str, message: str, progress: float):
         except Exception:
             dead.append(ws)
     for ws in dead:
-        connected_websockets.remove(ws)
+        try:
+            connected_websockets.remove(ws)
+        except ValueError:
+            pass  # Already removed
 
 # ─── Dashboard ───────────────────────────────────────────────
 @app.get("/api/dashboard")
@@ -131,7 +143,7 @@ async def train_models(dataset_path: Optional[str] = None):
         if not os.path.exists(csv_path):
             raise HTTPException(404, f"Dataset not found: {csv_path}")
 
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
 
         def progress_callback(model, message, pct):
             asyncio.run_coroutine_threadsafe(
@@ -157,7 +169,11 @@ async def train_models(dataset_path: Optional[str] = None):
 
         # Save model versions to DB
         for model_name, model_metrics in results.items():
-            version = getattr(getattr(pipeline, model_name), "version", 1)
+            try:
+                model_obj = getattr(pipeline, model_name, None)
+                version = getattr(model_obj, "version", 1) if model_obj else 1
+            except AttributeError:
+                version = 1
             save_model_version(model_name, version, model_metrics, len(X))
 
         # Save dataset info
@@ -166,7 +182,7 @@ async def train_models(dataset_path: Optional[str] = None):
             X.shape[1], float(np.mean(y))
         )
 
-        await broadcast_progress("system", "Training complete! ✅", 1.0)
+        await broadcast_progress("system", "Training complete! [OK]", 1.0)
 
         return {
             "status": "success",
@@ -367,7 +383,7 @@ async def retrain_with_feedback():
 
     training_in_progress = True
     try:
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
 
         # Get current metrics before retraining
         metrics_before = pipeline.get_all_metrics()
@@ -404,7 +420,7 @@ async def retrain_with_feedback():
         save_training_history("xgboost", metrics_before.get("xgboost", {}),
                               xgb_metrics, len(feedback_data))
 
-        await broadcast_progress("system", "Retraining complete! ✅", 1.0)
+        await broadcast_progress("system", "Retraining complete! [OK]", 1.0)
 
         return {
             "status": "success",

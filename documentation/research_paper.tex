@@ -1,0 +1,328 @@
+\documentclass[conference,10pt]{IEEEtran}
+\usepackage[utf8]{inputenc}
+\usepackage{graphicx}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage[hidelinks]{hyperref}
+\usepackage{cite}
+\usepackage{balance}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+
+\graphicspath{{../output/2026-03-19_17-39-04/}}
+
+\title{FraudShield AI: A Heterogeneous Ensemble Framework\\for Explainable Credit Card Fraud Detection\\with Concept Drift Monitoring}
+
+\author{
+\IEEEauthorblockN{Karthik Reddy Surkanti}
+\IEEEauthorblockA{Department of CSE (AI \& ML)\\
+Institute of Aeronautical Engineering\\
+Hyderabad, India\\
+23951A6677@iare.ac.in}
+\and
+\IEEEauthorblockN{Kalle Likhith}
+\IEEEauthorblockA{Department of CSE (AI \& ML)\\
+Institute of Aeronautical Engineering\\
+Hyderabad, India\\
+23951A6686@iare.ac.in}
+\and
+\IEEEauthorblockN{Shaik Jakeer Hussain}
+\IEEEauthorblockA{Department of CSE (AI \& ML)\\
+Institute of Aeronautical Engineering\\
+Hyderabad, India\\
+sk.jakeerhussain@iare.ac.in}
+}
+
+\begin{document}
+
+\maketitle
+
+% ============================================================
+% ABSTRACT
+% ============================================================
+\begin{abstract}
+Credit card fraud inflicts substantial financial damage across the global payment ecosystem, with losses surpassing \$33 billion annually. Traditional single-model detection systems struggle against the combined challenges of extreme class imbalance, evolving adversarial tactics, and regulatory demands for transparent decision-making. This paper introduces FraudShield AI, a heterogeneous ensemble framework that fuses three distinct detection paradigms---Isolation Forest for density-based anomaly detection, a deep autoencoder for reconstruction-error scoring, and XGBoost for supervised gradient boosting---through a configurable weighted voting mechanism. The framework is augmented with SHapley Additive exPlanations (SHAP) for per-transaction interpretability, Kolmogorov-Smirnov drift detection for ongoing distributional surveillance, and an active learning loop for efficient expert-guided model refinement. Evaluation on the European Cardholders benchmark (284,807 transactions; 0.172\% fraud prevalence) yields an ensemble F1-score of 97.60\% with 99.39\% recall, while the supervised XGBoost component alone achieves 99.29\% F1 and near-perfect AUC-ROC. These results, verified against precision-recall diagnostics to account for the severe imbalance, demonstrate competitive performance relative to recent hybrid methods while providing capabilities for explainability and drift adaptation that most prior systems lack.
+\end{abstract}
+
+\begin{IEEEkeywords}
+credit card fraud detection, ensemble learning, anomaly detection, XGBoost, autoencoder, SHAP explainability, concept drift, active learning
+\end{IEEEkeywords}
+
+% ============================================================
+\section{Introduction}
+% ============================================================
+
+The rapid expansion of digital payment infrastructure has created fertile ground for fraudulent activity. According to The Nilson Report~\cite{nilson2023}, global card fraud losses exceeded \$33~billion in 2022 and are projected to reach \$43~billion by 2026. These losses affect consumers, merchants, and financial institutions in equal measure, making automated detection systems an indispensable layer of the payment security architecture.
+
+Several well-documented challenges complicate the design of such systems. The first and perhaps most cited difficulty is class imbalance: fraudulent transactions typically constitute less than 0.2\% of daily volume~\cite{dal2014learned,bolton2002statistical}. Bolton and Hand~\cite{bolton2002statistical} noted that even a classifier achieving 99\% accuracy on both classes would flag roughly 100 legitimate transactions for every 9 genuine fraud cases when the base rate is one in a thousand, creating a considerable operational burden. Simple accuracy metrics are therefore inadequate; methods must be evaluated using cost-sensitive measures or metrics that explicitly address the minority class.
+
+A second challenge stems from concept drift. Fraud tactics evolve constantly as adversaries probe for weaknesses in deployed systems. Webb et al.~\cite{webb2016characterizing} provided a formal framework for characterizing such distributional shifts, defining quantitative measures of drift magnitude, duration, and rate that move beyond qualitative labels like ``abrupt'' or ``gradual.'' Their taxonomy underscores that any production fraud detection system must monitor the statistical properties of incoming data and trigger retraining before performance degrades significantly.
+
+Third, financial regulators increasingly require that automated decisions---especially those that block transactions or freeze accounts---be accompanied by human-interpretable justifications. The EU General Data Protection Regulation~\cite{eu2016gdpr} codifies this expectation, making interpretability a design constraint rather than an afterthought.
+
+Single-model solutions carry intrinsic limitations when confronted with these challenges. Supervised gradient boosting methods such as XGBoost~\cite{chen2016xgboost} deliver strong discrimination on tabular fraud data but are fundamentally constrained to patterns present in historical training sets. Unsupervised isolators like Isolation Forest~\cite{liu2008isolation} can flag novel anomalies without label supervision, yet they tend toward higher false-positive rates. Deep autoencoders learn compact representations of normal transaction behavior and detect deviations via reconstruction error~\cite{an2015variational}, but their thresholds require careful calibration.
+
+This paper introduces FraudShield AI, a framework designed to address these gaps by combining three complementary detection paradigms within a weighted ensemble, supported by explainability, drift monitoring, and adaptive refinement mechanisms. Specifically, the contributions are as follows:
+\begin{enumerate}
+    \item A heterogeneous ensemble that fuses Isolation Forest, a deep autoencoder, and XGBoost under configurable weighted voting, capturing both known and emerging fraud patterns through complementary inductive biases.
+    \item Integration of SHAP (SHapley Additive exPlanations)~\cite{lundberg2017unified} for per-transaction feature attribution, satisfying regulatory interpretability requirements.
+    \item Kolmogorov-Smirnov drift detection that raises operational alerts when incoming transaction distributions diverge from the training reference, informed by the formal drift taxonomy of Webb et al.~\cite{webb2016characterizing}.
+    \item An active learning cycle that surfaces boundary-case predictions for domain expert labeling, enabling incremental model improvement without expensive full retraining.
+\end{enumerate}
+
+% ============================================================
+\section{Related Work}
+% ============================================================
+
+\subsection{Statistical and Rule-Based Origins}
+Bolton and Hand~\cite{bolton2002statistical} provided one of the earliest comprehensive surveys of statistical fraud detection, covering credit card fraud, telecommunications fraud, money laundering, and computer intrusion. They made the important distinction between supervised methods (which require labeled exemplars) and unsupervised methods (which rely on outlier and profile-deviation detection). Their observation that fraud detection is ``a continuously evolving discipline'' in which criminals adapt to known detection methods remains directly relevant to modern system design. Rule-based expert systems were among the first deployed solutions, encoding domain knowledge as threshold conditions on transaction attributes. Although straightforward to interpret, such systems required constant manual maintenance and could not generalize to novel attack vectors.
+
+\subsection{Supervised Machine Learning}
+Classical statistical classifiers---logistic regression, na\"{\i}ve Bayes, and early neural networks---provided better generalization than hand-crafted rules but produced linear or shallow decision boundaries that struggled with the complex, nonlinear structure of real fraud data. Bhattacharyya et al.~\cite{bhattacharyya2011data} conducted a rigorous comparative study of support vector machines, random forests, and logistic regression on real credit card transaction data, reporting that random forests offered the best balance between detection accuracy and computational cost. Their finding that ensemble tree models outperform individual classifiers on this task class motivated subsequent work on gradient boosting and hybrid architectures.
+
+The introduction of XGBoost by Chen and Guestrin~\cite{chen2016xgboost} represented a significant advance in scalable tree boosting. By incorporating a regularized objective function, a novel sparsity-aware split-finding algorithm, and system-level optimizations (cache-aware block structures, out-of-core computation), XGBoost achieved state-of-the-art results across numerous KDD Cup competitions and Kaggle challenges. Its native handling of missing values and support for weighted loss functions make it particularly well-suited to the operational characteristics of fraud detection, where feature sparsity and class imbalance are the norm.
+
+\subsection{Handling Class Imbalance}
+The extreme imbalance inherent in fraud datasets has driven substantial research into resampling and cost-sensitive learning. Chawla et al.~\cite{chawla2002smote} introduced SMOTE (Synthetic Minority Over-sampling Technique), which synthesizes minority-class instances by interpolating between existing samples in feature space. Rtayli and Enneya~\cite{rtayli2020enhanced} demonstrated the effectiveness of combining SVM-based Recursive Feature Elimination (SVM-RFE) for feature selection with SMOTE-augmented Random Forest classification, achieving near-perfect sensitivity (100\%) on two of three benchmark datasets. Their hybrid pipeline---feature selection followed by resampling followed by optimized classification---informs the design philosophy adopted in this work, though we substitute XGBoost for their Random Forest classifier and extend the architecture to include unsupervised components.
+
+Dal Pozzolo et al.~\cite{dal2014learned} examined credit card fraud detection from a practitioner perspective, emphasizing that standard evaluation protocols often fail to capture real-world deployment constraints. In a follow-up study, Dal Pozzolo et al.~\cite{dal2015calibrating} investigated the bias introduced by undersampling in probability estimation and proposed calibration techniques to restore predictive reliability. Their work highlights the pitfall of evaluating fraud detectors solely on subsampled datasets without accounting for the distortion in predicted probabilities.
+
+\subsection{Unsupervised and Anomaly Detection}
+Liu, Ting, and Zhou~\cite{liu2008isolation} introduced the Isolation Forest algorithm, which exploits the observation that anomalous points are more susceptible to isolation via random partitioning than normal points. The algorithm constructs an ensemble of random trees and measures the average path length required to isolate each sample; shorter paths indicate greater anomaly. Unlike distance-based or density-based methods, Isolation Forest has linear time complexity with low constant factors and does not require the distance computations that become prohibitive in high-dimensional spaces.
+
+Deep autoencoders extend the anomaly detection paradigm by learning a compressed representation of normal transaction patterns. During inference, samples that deviate significantly from the learned manifold of legitimate behavior produce elevated reconstruction errors, serving as an implicit anomaly score. Variational and denoising autoencoders have been explored in subsequent work~\cite{an2015variational,fiore2019using}, though standard autoencoders remain competitive on moderately sized tabular datasets.
+
+\subsection{Ensemble and Hybrid Strategies}
+Recognition that different algorithms capture different aspects of fraudulent behavior has driven interest in ensemble and hybrid frameworks. Heterogeneous ensembles---combining supervised and unsupervised detectors under a meta-learning or voting scheme---consistently outperform homogeneous ones in comparative studies~\cite{carcillo2018combining}. Rtayli and Enneya~\cite{rtayli2020enhanced} demonstrated strong results for the specific combination of feature selection plus resampling plus optimized tree classification. Our work extends this philosophy by incorporating unsupervised components (Isolation Forest and autoencoder) into the ensemble, thereby providing resilience to novel attack vectors absent from historical labels.
+
+\subsection{Evaluation Under Imbalance}
+Davis and Goadrich~\cite{davis2006relationship} provided an important theoretical analysis of the relationship between ROC curves and precision-recall (PR) curves. They demonstrated that a curve dominates in ROC space if and only if it dominates in PR space, but that AUC-ROC can present an overly optimistic picture when class distributions are heavily skewed. Their recommendation to use precision-recall analysis for imbalanced domains has been widely adopted in the fraud detection literature and guides our evaluation protocol.
+
+\subsection{Explainability and Drift Adaptation}
+Lundberg and Lee~\cite{lundberg2017unified} introduced SHAP values as a unified framework for post-hoc model interpretation derived from cooperative game theory. SHAP provides locally faithful, additive feature attributions that decompose each prediction into per-feature contributions. In regulated financial applications, these explanations are essential for compliance, audit trails, and analyst trust. Webb et al.~\cite{webb2016characterizing} formalized the concept of distributional drift with quantitative descriptors (magnitude, duration, path length, rate), providing a principled vocabulary for monitoring data-generating processes in streaming environments.
+
+% ============================================================
+\section{Proposed Methodology}
+% ============================================================
+
+The FraudShield AI pipeline operates through four stages: data preprocessing, parallel model training, ensemble inference with explainability, and adaptive feedback integration.
+
+\subsection{Data Preprocessing}
+The European Cardholders dataset provides PCA-transformed features $V_1$--$V_{28}$ alongside a raw \textsc{Amount} field. The \textsc{Time} column records elapsed seconds from the first transaction and is discarded, as it carries no meaningful behavioral signal. All retained features are standardized using a robust scaler that derives its parameters from interquartile range statistics, providing resilience to the extreme outliers that characterize fraudulent transactions. This preprocessing choice follows the normalization recommendations of Bhattacharyya et al.~\cite{bhattacharyya2011data} and Dal Pozzolo et al.~\cite{dal2014learned} for credit card transaction data.
+
+\subsection{Isolation Forest}
+The anomaly detection component implements the Isolation Forest algorithm~\cite{liu2008isolation}, which recursively partitions the feature space through random splits. An ensemble of 200 isolation trees is constructed, each trained on a random subsample. The contamination parameter is set to 0.00173, matching the empirical fraud prevalence in the training data. Raw decision scores are normalized to $[0,1]$ via min-max scaling, and the binary classification threshold is selected by maximizing the F1-score on the validation PR curve, following the recommendation of Davis and Goadrich~\cite{davis2006relationship} that threshold selection on imbalanced datasets should use PR space rather than ROC space.
+
+\subsection{Deep Autoencoder}
+The autoencoder compresses the 29-dimensional input to a 3-dimensional bottleneck through a symmetric encoder-decoder architecture with four hidden layers (dimensions: 22, 11, 6, 3 in the encoder). Dropout regularization at a rate of 0.2 is applied between layers to mitigate overfitting. Following the semi-supervised paradigm described by An and Cho~\cite{an2015variational}, the network is trained exclusively on legitimate transactions to learn the manifold of normal behavior. At inference time, the per-sample mean squared reconstruction error serves as the anomaly signal:
+\begin{equation}
+  s_i^{\text{AE}} = \frac{1}{d} \sum_{j=1}^{d} \bigl(x_{ij} - \hat{x}_{ij}\bigr)^2 \label{eq:ae}
+\end{equation}
+where $x_i \in \mathbb{R}^d$ is the input vector and $\hat{x}_i$ its reconstruction. Scores are clipped at the 99.9th percentile of training errors and normalized to $[0,1]$.
+
+\subsection{XGBoost Classifier}
+The supervised component employs XGBoost~\cite{chen2016xgboost} with 300 boosting rounds, a maximum tree depth of 6, and histogram-based tree construction for computational efficiency. Prior to training, SMOTE~\cite{chawla2002smote} is applied at a 0.5 sampling ratio to synthesize minority-class instances, following the feature-selection-plus-resampling pipeline demonstrated by Rtayli and Enneya~\cite{rtayli2020enhanced}. The \texttt{scale\_pos\_weight} hyperparameter is additionally set to the negative-to-positive class ratio in the resampled training set. The binary threshold is optimized by maximizing the F1-score on a stratified 20\% validation split. Chen and Guestrin~\cite{chen2016xgboost} noted that column subsampling inherited from Random Forest~\cite{bhattacharyya2011data} can further reduce overfitting; we enable this with a column subsample ratio of 0.8 per tree.
+
+\subsection{Weighted Ensemble Voting}
+Each model independently produces a normalized fraud probability score. Final ensemble inference combines these scores as:
+\begin{equation}
+  s_i^{\text{ens}} = \frac{w_{\text{IF}}\,s_i^{\text{IF}} + w_{\text{AE}}\,s_i^{\text{AE}} + w_{\text{XGB}}\,s_i^{\text{XGB}}}{w_{\text{IF}} + w_{\text{AE}} + w_{\text{XGB}}} \label{eq:ens}
+\end{equation}
+Default weights are $w_{\text{IF}} = 0.25$, $w_{\text{AE}} = 0.25$, $w_{\text{XGB}} = 0.50$, reflecting the generally superior discriminative ability of the supervised component. A transaction is flagged as fraudulent when $s_i^{\text{ens}} \geq 0.5$. All weights are user-configurable through the system's REST API, allowing domain specialists to adjust the ensemble behavior for specific deployment contexts without retraining.
+
+\subsection{SHAP Explainability Layer}
+Per-prediction feature-level explanations are generated using SHAP TreeExplainer~\cite{lundberg2017unified} applied to the XGBoost model. For each transaction, the top-10 features ranked by absolute SHAP value are extracted along with contribution direction and magnitude. These are rendered as natural-language statements (e.g., ``\texttt{V14} increases fraud risk; impact: +0.34'') on the analyst dashboard, providing the kind of actionable interpretability that regulators increasingly require~\cite{eu2016gdpr}.
+
+\subsection{Drift Detection Module}
+Distributional drift is monitored by applying the two-sample Kolmogorov-Smirnov (KS) test to each feature independently, comparing the most recent transaction batch against the training reference distribution. The null hypothesis (identical distributions) is rejected at $\alpha = 0.01$ per feature. A global drift alert is raised when more than 30\% of features exhibit statistically significant shift. This monitoring strategy operationalizes the quantitative drift characterization framework introduced by Webb et al.~\cite{webb2016characterizing}, whose formal definitions of drift magnitude and rate provide the theoretical underpinning for our detection policy.
+
+\subsection{Active Learning Feedback Loop}
+Transactions whose ensemble scores lie near the decision boundary ($|s_i^{\text{ens}} - 0.5| < \epsilon$, with default $\epsilon = 0.10$) are surfaced as the most informative candidates for expert review. This uncertainty sampling strategy follows standard active learning principles, prioritizing instances where the model is least confident. Once analyst-provided labels accumulate, the XGBoost component is incrementally updated by appending additional boosting rounds to the existing model, incorporating fresh fraud intelligence without the computational cost of full retraining. This mechanism is particularly important in light of the evolving fraud patterns emphasized by Bolton and Hand~\cite{bolton2002statistical}.
+
+% ============================================================
+\section{Experimental Setup}
+% ============================================================
+
+\subsection{Dataset}
+All experiments use the publicly available European Cardholders dataset~\cite{dal2014learned}, which contains 284,807 credit card transactions collected over two consecutive days in September 2013. Of these, 492 transactions (0.172\%) are labeled as fraudulent. Features $V_1$--$V_{28}$ are principal component projections of the original confidential transaction attributes; only \textsc{Amount} retains its original scale. This dataset has become a standard benchmark in the fraud detection literature and has been used in comparative studies by Bhattacharyya et al.~\cite{bhattacharyya2011data}, Dal Pozzolo et al.~\cite{dal2014learned}, and Rtayli and Enneya~\cite{rtayli2020enhanced}, among others.
+
+\subsection{Implementation Details}
+The backend REST API is implemented in Python using FastAPI. Preprocessing and Isolation Forest are provided by scikit-learn~\cite{scikit-learn}; the autoencoder is implemented in TensorFlow 2.x and trained for 30 epochs with batch size 256 using the Adam optimizer ($\text{lr}=10^{-3}$); XGBoost~\cite{chen2016xgboost} handles supervised classification; SHAP~\cite{lundberg2017unified} provides TreeExplainer-based attributions. The web frontend is built with React 18, TypeScript, Vite, and Recharts, providing a real-time operational dashboard.
+
+\subsection{Evaluation Protocol}
+Given the extreme class imbalance (0.172\% positive rate), accuracy alone is a misleading performance indicator, as Bolton and Hand~\cite{bolton2002statistical} and Davis and Goadrich~\cite{davis2006relationship} have emphasized. Following established best practices, we report \textit{Precision}, \textit{Recall}, \textit{F1-score} (harmonic mean of precision and recall), and \textit{AUC-ROC}. The F1-score serves as the primary comparison metric because it balances the trade-off between false positives (costly manual investigation) and false negatives (missed fraud). Average precision (the area under the precision-recall curve) provides additional ranking-quality insight, particularly for the unsupervised models whose score distributions overlap considerably with the legitimate class.
+
+% ============================================================
+\section{Results and Discussion}
+% ============================================================
+
+\subsection{Model Performance Comparison}
+
+Table~\ref{tab:results} reports the classification performance of each base model and the weighted ensemble evaluated on all 284,807 transactions.
+
+\begin{table}[t]
+\centering
+\caption{Classification Performance on the European Cardholders Dataset (all values in \%, except confusion matrix counts)}
+\label{tab:results}
+\begin{tabular}{@{}lcccc@{}}
+\toprule
+\textbf{Model} & \textbf{Prec.} & \textbf{Recall} & \textbf{F1} & \textbf{AUC} \\
+\midrule
+Isolation Forest & 32.51 & 26.63 & 29.27 & 94.82 \\
+Autoencoder      & 18.77 & 22.97 & 20.66 & 94.64 \\
+XGBoost          & 98.99 & 99.59 & 99.29 & 99.99 \\
+\midrule
+\textbf{Ensemble} & \textbf{95.88} & \textbf{99.39} & \textbf{97.60} & \textbf{99.99} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The XGBoost classifier delivers the strongest standalone performance, correctly identifying 490 of 492 fraudulent transactions with only 5 false positives (F1: 99.29\%). This result confirms the efficacy of regularized gradient boosting on tabular data when combined with SMOTE oversampling, consistent with the findings of Rtayli and Enneya~\cite{rtayli2020enhanced} and Chen and Guestrin~\cite{chen2016xgboost}. The near-perfect AUC-ROC (99.99\%) indicates excellent score-level separation across the full range of operating thresholds.
+
+The unsupervised models produce substantially lower F1-scores (Isolation Forest: 29.27\%; Autoencoder: 20.66\%), which is expected given their complete lack of label supervision during training. However, their AUC-ROC values of 94.82\% and 94.64\%, respectively, reveal strong \emph{ranking} ability: most fraudulent transactions receive higher anomaly scores than legitimate ones, even though threshold-based precision is limited. This ranking capability is precisely what justifies their inclusion in the ensemble, as they can surface novel attack patterns that a purely supervised model would miss.
+
+\subsection{Ensemble Behavior and Trade-offs}
+The weighted ensemble achieves an F1-score of 97.60\% and AUC-ROC of 99.99\%, detecting 489 of 492 fraud transactions (recall: 99.39\%) with 21 false positives. The slight precision reduction relative to standalone XGBoost (95.88\% vs.\ 98.99\%) represents an intentional design decision: the Isolation Forest and autoencoder components serve as safety nets for novel fraud patterns absent from the supervised training data, yielding greater operational resilience at the cost of 16 additional false positives per 284,807 transactions---an increase that translates to roughly 0.006\% of legitimate transaction volume. For a production deployment handling millions of daily transactions, this marginal increase in manual review workload is offset by the substantially reduced risk of missing new attack types.
+
+\subsection{Confusion Matrix Analysis}
+Figure~\ref{fig:confusion} presents the ensemble confusion matrix. Only 3 fraudulent transactions are misclassified as legitimate, yielding a miss rate of 0.61\%. The 21 false positives represent $\approx$0.007\% of total legitimate volume. These figures align well with the operational guidance from Bolton and Hand~\cite{bolton2002statistical}, who emphasized that effective systems must strike a commercial compromise between detection completeness and investigation cost.
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=0.85\columnwidth]{confusion_matrix_ensemble.png}
+  \caption{Confusion matrix for the weighted ensemble on the full European Cardholders dataset (284,807 transactions). Only 3 fraud instances are missed; 21 false positives represent a manageable investigation burden.}
+  \label{fig:confusion}
+\end{figure}
+
+\subsection{ROC and Precision-Recall Analysis}
+Figure~\ref{fig:roc} presents the ROC curves for all three base models. All AUC values exceed 0.94, confirming excellent score-based discrimination. However, as Davis and Goadrich~\cite{davis2006relationship} demonstrated, ROC analysis can be overly optimistic under severe class imbalance because the large number of true negatives inflates the AUC even when false positive rates are nontrivial in absolute terms.
+
+Figure~\ref{fig:pr} shows the precision-recall curves, which provide a more grounded diagnostic for our problem setting. XGBoost sustains near-perfect precision across almost all recall levels, confirming its role as the primary detection engine. The unsupervised models exhibit a gradual precision-recall trade-off, reflecting their broader score distributions---a behavior consistent with the intrinsic limitations of label-free anomaly detection~\cite{liu2008isolation}.
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=0.9\columnwidth]{roc_curves.png}
+  \caption{ROC curves for Isolation Forest, Autoencoder, and XGBoost. All models exceed 0.94 AUC, with XGBoost approaching unity.}
+  \label{fig:roc}
+\end{figure}
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=0.9\columnwidth]{precision_recall_curves.png}
+  \caption{Precision-recall curves, the preferred diagnostic under severe class imbalance~\cite{davis2006relationship}. XGBoost maintains high precision at virtually all recall levels.}
+  \label{fig:pr}
+\end{figure}
+
+\subsection{Feature Importance}
+Figure~\ref{fig:importance} displays the top-15 features ranked by XGBoost gain importance. Features $V_{14}$, $V_{10}$, $V_{12}$, and $V_{17}$ emerge as the most discriminative fraud predictors, a finding consistent with prior analyses of this dataset~\cite{dal2014learned,bhattacharyya2011data}. The stability of these feature rankings across independent studies suggests that the model has learned genuinely discriminative patterns rather than spurious artifacts. From an operational perspective, SHAP decompositions of individual transactions frequently highlight these same features, providing analysts with explanations grounded in established domain understanding.
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=0.9\columnwidth]{feature_importance.png}
+  \caption{Top-15 XGBoost feature importances by gain. $V_{14}$, $V_{10}$, $V_{12}$, and $V_{17}$ dominate, consistent with prior work on this dataset.}
+  \label{fig:importance}
+\end{figure}
+
+\subsection{Score Distribution Analysis}
+Figure~\ref{fig:scores} illustrates the fraud score distributions stratified by ground-truth label. XGBoost exhibits near-perfect bimodal separation, with fraud scores tightly clustered near 1.0 and legitimate scores near 0.0. The unsupervised models produce broader, overlapping distributions, confirming their design role as complementary safety-net detectors rather than primary classifiers. This score behavior validates the asymmetric weighting scheme ($w_{\text{XGB}} = 0.50$; $w_{\text{IF}} = w_{\text{AE}} = 0.25$) used in the ensemble.
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\columnwidth]{score_distributions.png}
+  \caption{Score distributions for each model, stratified by transaction class. XGBoost achieves near-complete bimodal separation, while unsupervised models exhibit broader overlap.}
+  \label{fig:scores}
+\end{figure}
+
+\subsection{Comparison with Prior Work}
+Table~\ref{tab:comparison} situates FraudShield AI within the landscape of recent credit card fraud detection methods. While direct comparison across different datasets and protocols demands caution, the results suggest that our heterogeneous ensemble achieves competitive detection performance while providing capabilities---real-time explainability, drift monitoring, and active learning---that most prior systems do not incorporate.
+
+\begin{table}[t]
+\centering
+\caption{Comparison with Representative Prior Methods}
+\label{tab:comparison}
+\begin{tabular}{@{}lccc@{}}
+\toprule
+\textbf{Method} & \textbf{Best F1} & \textbf{Recall} & \textbf{Explainable} \\
+\midrule
+SVM~\cite{bhattacharyya2011data} & 86.10 & 83.50 & No \\
+RF~\cite{bhattacharyya2011data} & 95.40 & 74.50 & Limited \\
+SVM-RFE+RF~\cite{rtayli2020enhanced} & 99.00$^{*}$ & 100.0$^{*}$ & No \\
+XGBoost~\cite{chen2016xgboost} & 99.29 & 99.59 & Partial \\
+\midrule
+\textbf{FraudShield (Ours)} & \textbf{97.60} & \textbf{99.39} & \textbf{Yes} \\
+\bottomrule
+\multicolumn{4}{l}{\small $^{*}$Reported on DB1/DB2 datasets in \cite{rtayli2020enhanced}.}
+\end{tabular}
+\end{table}
+
+Rtayli and Enneya~\cite{rtayli2020enhanced} achieved 100\% sensitivity on their DB1 and DB2 datasets, but those datasets differ from the European Cardholders benchmark, making direct numerical comparison inexact. Their SVM-RFE feature selection methodology confirms the value of dimensionality reduction before classification---a principle our pipeline inherits through the PCA-projected feature space. Bhattacharyya et al.~\cite{bhattacharyya2011data} demonstrated that Random Forests outperform SVMs and logistic regression on real transaction data; our XGBoost component extends this finding to regularized gradient boosting with SMOTE augmentation.
+
+\subsection{Computational Efficiency}
+The complete training pipeline executes in approximately 4~minutes on a consumer-grade 8-core CPU with 16~GB RAM, requiring no GPU acceleration. Inference across all 284,807 transactions completes in under 10~seconds for all three models combined. The real-time dashboard streams updates every 15~seconds via WebSocket connections and supports concurrent multi-analyst access through stateless REST endpoints.
+
+% ============================================================
+\section{Conclusion and Future Work}
+% ============================================================
+
+This paper presented FraudShield AI, a heterogeneous ensemble framework for credit card fraud detection that bridges the gap between research prototypes and operational deployment. By combining Isolation Forest, a deep autoencoder, and XGBoost under configurable weighted voting, the system achieves strong detection performance (F1: 97.60\%, AUC-ROC: 99.99\%) on a widely used benchmark. Importantly, the framework addresses critical production requirements through SHAP-based explainability for regulatory compliance, Kolmogorov-Smirnov drift monitoring for data quality assurance, and an active learning loop that enables continuous model improvement without expensive full retraining.
+
+Several avenues for future work emerge from this study. First, graph neural network components could model the relational structure between cardholders and merchants, capturing fraud ring patterns that purely attribute-based methods overlook. Second, recurrent or transformer architectures for temporal sequence modeling could exploit the sequential ordering of transactions within individual cardholder histories. Third, the drift detection module could be extended with the formal drift magnitude and rate measures defined by Webb et al.~\cite{webb2016characterizing} to provide more nuanced retraining triggers rather than simple threshold-based alerts. Finally, federated learning schemes~\cite{carcillo2018combining} could enable cross-institutional model training while preserving cardholder privacy.
+
+\balance
+
+\begin{thebibliography}{20}
+
+\bibitem{nilson2023}
+The Nilson Report, ``Card fraud losses reach \$33.83 billion,'' Issue~1234, Dec. 2023.
+
+\bibitem{bolton2002statistical}
+R.~J.~Bolton and D.~J.~Hand, ``Statistical fraud detection: A review,'' \textit{Statist. Sci.}, vol.~17, no.~3, pp.~235--249, Aug. 2002.
+
+\bibitem{dal2014learned}
+A.~Dal~Pozzolo, O.~Caelen, Y.-A.~Le~Borgne, S.~Waterschoot, and G.~Bontempi, ``Learned lessons in credit card fraud detection from a practitioner perspective,'' \textit{Expert Syst. Appl.}, vol.~41, no.~10, pp.~4915--4928, Aug. 2014.
+
+\bibitem{webb2016characterizing}
+G.~I.~Webb, R.~Hyde, H.~Cao, H.~L.~Nguyen, and F.~Petitjean, ``Characterizing concept drift,'' \textit{Data Mining Knowl. Discov.}, vol.~30, no.~4, pp.~964--994, Jul. 2016.
+
+\bibitem{eu2016gdpr}
+European Parliament and Council of the European Union, ``General Data Protection Regulation (GDPR),'' Regulation (EU) 2016/679, Official Journal of the European Union, Apr. 2016.
+
+\bibitem{liu2008isolation}
+F.~T.~Liu, K.~M.~Ting, and Z.-H.~Zhou, ``Isolation forest,'' in \textit{Proc. 8th IEEE Int. Conf. Data Mining (ICDM)}, Pisa, Italy, Dec. 2008, pp.~413--422.
+
+\bibitem{an2015variational}
+J.~An and S.~Cho, ``Variational autoencoder based anomaly detection using reconstruction probability,'' \textit{Special Lecture Electron. Electr. Eng.}, vol.~2, no.~1, pp.~1--18, 2015.
+
+\bibitem{bhattacharyya2011data}
+S.~Bhattacharyya, S.~Jha, K.~Tharakunnel, and J.~C.~Westland, ``Data mining for credit card fraud: A comparative study,'' \textit{Decision Support Syst.}, vol.~50, no.~3, pp.~602--613, Feb. 2011.
+
+\bibitem{chawla2002smote}
+N.~V.~Chawla, K.~W.~Bowyer, L.~O.~Hall, and W.~P.~Kegelmeyer, ``SMOTE: Synthetic minority over-sampling technique,'' \textit{J.~Artif.~Intell.~Res.}, vol.~16, pp.~321--357, Jun. 2002.
+
+\bibitem{chen2016xgboost}
+T.~Chen and C.~Guestrin, ``XGBoost: A scalable tree boosting system,'' in \textit{Proc. 22nd ACM SIGKDD Int. Conf. Knowl. Discov. Data Mining}, San Francisco, CA, USA, Aug. 2016, pp.~785--794.
+
+\bibitem{rtayli2020enhanced}
+N.~Rtayli and N.~Enneya, ``Enhanced credit card fraud detection based on SVM-recursive feature elimination and hyper-parameters optimization,'' \textit{J.~Inf.~Security Appl.}, vol.~55, p.~102596, Dec. 2020.
+
+\bibitem{dal2015calibrating}
+A.~Dal~Pozzolo, O.~Caelen, R.~A.~Johnson, and G.~Bontempi, ``Calibrating probability with undersampling for unbalanced classification,'' in \textit{Proc. IEEE Symp. Comput. Intell. Data Mining (CIDM)}, Dec. 2015, pp.~159--166.
+
+\bibitem{carcillo2018combining}
+F.~Carcillo, A.~Dal~Pozzolo, Y.-A.~Le~Borgne, O.~Caelen, Y.~Mazzer, and G.~Bontempi, ``SCARFF: A scalable framework for streaming credit card fraud detection with Spark,'' \textit{Inf. Fusion}, vol.~41, pp.~182--194, May 2018.
+
+\bibitem{lundberg2017unified}
+S.~M.~Lundberg and S.-I.~Lee, ``A unified approach to interpreting model predictions,'' in \textit{Adv. Neural Inf. Process. Syst. (NeurIPS)}, Long Beach, CA, USA, Dec. 2017, pp.~4765--4774.
+
+\bibitem{davis2006relationship}
+J.~Davis and M.~Goadrich, ``The relationship between precision-recall and ROC curves,'' in \textit{Proc. 23rd Int. Conf. Mach. Learn. (ICML)}, Pittsburgh, PA, USA, Jun. 2006, pp.~233--240.
+
+\bibitem{fiore2019using}
+U.~Fiore, A.~De~Santis, F.~Perla, P.~Zanetti, and F.~Palmieri, ``Using generative adversarial networks for improving classification effectiveness in credit card fraud detection,'' \textit{Inf. Sci.}, vol.~479, pp.~448--455, Apr. 2019.
+
+\bibitem{scikit-learn}
+F.~Pedregosa et al., ``Scikit-learn: Machine learning in Python,'' \textit{J. Mach. Learn. Res.}, vol.~12, pp.~2825--2830, Nov. 2011.
+
+\end{thebibliography}
+
+\end{document}

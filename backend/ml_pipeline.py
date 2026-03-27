@@ -86,6 +86,8 @@ class IsolationForestModel:
         return self.metrics
 
     def predict(self, X: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+        if not self.is_trained:
+            raise ValueError("IsolationForest model not trained. Call train() first.")
         X_scaled = self.scaler.transform(X)
         scores = self.model.decision_function(X_scaled)
         normalized = 1 - (scores - self.min_score) / (self.max_score - self.min_score + 1e-10)
@@ -146,16 +148,16 @@ class AutoencoderModel:
         encoder = keras.Sequential([
             keras.layers.Dense(input_dim, activation='relu', input_shape=(input_dim,)),
             keras.layers.Dropout(0.2),
-            keras.layers.Dense(input_dim // 2, activation='relu'),
+            keras.layers.Dense(max(1, input_dim // 2), activation='relu'),
             keras.layers.Dropout(0.2),
-            keras.layers.Dense(input_dim // 4, activation='relu'),
-            keras.layers.Dense(input_dim // 8, activation='tanh'),
+            keras.layers.Dense(max(1, input_dim // 4), activation='relu'),
+            keras.layers.Dense(max(1, input_dim // 8), activation='tanh'),
         ])
 
         decoder = keras.Sequential([
-            keras.layers.Dense(input_dim // 4, activation='relu', input_shape=(input_dim // 8,)),
+            keras.layers.Dense(max(1, input_dim // 4), activation='relu', input_shape=(max(1, input_dim // 8),)),
             keras.layers.Dropout(0.2),
-            keras.layers.Dense(input_dim // 2, activation='relu'),
+            keras.layers.Dense(max(1, input_dim // 2), activation='relu'),
             keras.layers.Dropout(0.2),
             keras.layers.Dense(input_dim, activation='linear'),
         ])
@@ -248,6 +250,8 @@ class AutoencoderModel:
         return self.metrics
 
     def predict(self, X: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+        if not self.is_trained:
+            raise ValueError("Autoencoder model not trained. Call train() first.")
         X_scaled = self.scaler.transform(X)
         reconstructed = self.model.predict(X_scaled, verbose=0)
         mse = np.mean((X_scaled - reconstructed) ** 2, axis=1)
@@ -336,7 +340,6 @@ class XGBoostModel:
             eval_metric='aucpr',
             random_state=42,
             n_jobs=-1,
-            use_label_encoder=False,
             tree_method='hist'
         )
 
@@ -369,6 +372,8 @@ class XGBoostModel:
         return self.metrics
 
     def predict(self, X: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+        if not self.is_trained:
+            raise ValueError("XGBoost model not trained. Call train() first.")
         X_scaled = self.scaler.transform(X)
         y_proba = self.model.predict_proba(X_scaled)[:, 1]
         predictions = (y_proba >= self.threshold).astype(int)
@@ -616,9 +621,11 @@ class FraudDetectionPipeline:
         # XGBoost feature importance
         if self.xgboost.is_trained:
             xgb_importance = self.xgboost.model.feature_importances_
+            # Use min to prevent IndexError
+            num_features = min(len(self.feature_names), len(xgb_importance))
             importance["xgboost"] = {
                 self.feature_names[i]: float(xgb_importance[i])
-                for i in range(len(self.feature_names))
+                for i in range(num_features)
             }
             importance["xgboost"] = dict(
                 sorted(importance["xgboost"].items(), key=lambda x: x[1], reverse=True)
