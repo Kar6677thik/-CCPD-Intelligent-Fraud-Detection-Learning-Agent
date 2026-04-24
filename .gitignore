@@ -32,6 +32,7 @@ logs/
 *.csv
 creditcard.csv
 sample_creditcard.csv
+test_sample_*.csv
 datasets/
 models/*.pkl
 models/*.keras
@@ -80,3 +81,26 @@ fraud_detection.db-wal
 .env.*.local
 .pytest_cache
 *.pid
+
+# Documentation and research (not needed in repo)
+documentation/
+arch.mermaid
+arch.png
+
+# Debug/fix guides (no longer needed)
+DEBUG_REPORT.md
+FIXED_GUIDE.md
+QUICK_FIX_REFERENCE.md
+
+# One-off scripts (no longer needed)
+PATCH_INSTRUCTIONS.py
+validation_script.py
+generate_sample.py
+generate_test_sample.py
+backend/threshold_fix.py
+
+# AI context file
+claude.md
+
+# Root package-lock (only frontend one matters)
+/package-lock.json

@@ -1,22 +1,53 @@
-# 🛡️ FraudShield AI — Intelligent Fraud Detection Learning Agent
+# FraudShield AI - Intelligent Fraud Detection Learning Agent
 
-A production-grade fraud detection system with a modern React dashboard and FastAPI backend, featuring real-time fraud detection, model comparison, SHAP explainability, and adaptive learning.
+A production-grade credit card fraud detection system featuring a hybrid ensemble of three machine learning models, a modern React dashboard, real-time SHAP explainability, and an adaptive learning loop that improves detection accuracy over time through human feedback.
 
-## 🚀 Quick Start
+Built as a project for the AI Specialist course (6th Semester).
+
+---
+
+## Table of Contents
+
+1. [Prerequisites](#prerequisites)
+2. [Quick Start](#quick-start)
+3. [Architecture](#architecture)
+4. [ML Models](#ml-models)
+5. [Usage Guide](#usage-guide)
+6. [Adaptive Learning](#adaptive-learning)
+7. [API Reference](#api-reference)
+8. [Features](#features)
+
+---
+
+## Prerequisites
+
+- Python 3.10 or higher
+- Node.js 18 or higher
+- The `creditcard.csv` dataset (Kaggle Credit Card Fraud Detection) placed in the project root
+
+---
+
+## Quick Start
 
 ### Option 1: Local Development (Recommended)
 
-**Backend:**
+**Backend** (Terminal 1):
+
 ```bash
-# Activate venv and install dependencies
-venv\Scripts\activate
+# Create and activate a virtual environment
+python -m venv venv
+venv\Scripts\activate          # Windows
+# source venv/bin/activate     # macOS/Linux
+
+# Install dependencies
 pip install -r requirements.txt
 
-# Start FastAPI server
-venv\Scripts\uvicorn.exe backend.main:app --host 0.0.0.0 --port 8000 --reload
+# Start the FastAPI server
+uvicorn backend.main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
-**Frontend** (in a new terminal):
+**Frontend** (Terminal 2):
+
 ```bash
 cd frontend
 npm install
@@ -26,35 +57,28 @@ npm run dev
 Open **http://localhost:5173** in your browser.
 
 ### Option 2: Docker
+
 ```bash
 docker-compose up --build
 ```
 
 ---
 
-## 📋 First-Time Setup
-
-1. **Train Models**: Click "Train Models" on the Dashboard or call `POST /api/train`
-2. **Upload Data**: Go to Detection → upload `creditcard.csv` for predictions
-3. **Explore Results**: View transactions, model comparison, and SHAP explanations
-4. **Adaptive Learning**: Submit feedback → click "Retrain with Feedback"
-
----
-
-## 🏗️ Architecture
+## Architecture
 
 ```
 CreditCard3/
-├── backend/                # FastAPI + ML Pipeline
-│   ├── main.py             # REST API + WebSocket endpoints
-│   ├── ml_pipeline.py      # IF, Autoencoder, XGBoost, Ensemble
-│   ├── database.py         # SQLite CRUD operations
-│   └── output_manager.py   # Timestamped output folders with plots
-├── frontend/               # React + TypeScript + Vite
+├── backend/
+│   ├── main.py             # FastAPI REST and WebSocket endpoints
+│   ├── ml_pipeline.py      # Isolation Forest, Autoencoder, XGBoost, Ensemble
+│   ├── database.py         # SQLite CRUD for predictions, feedback, model versions
+│   └── output_manager.py   # Timestamped output folders with plots and metrics
+├── frontend/
 │   └── src/
-│       ├── App.tsx          # All dashboard pages
-│       ├── api.ts           # API service layer
-│       └── index.css        # Design system
+│       ├── App.tsx          # Dashboard page components
+│       ├── api.ts           # Typed API client layer
+│       └── index.css        # Design system (dark fintech theme)
+├── models/                  # Saved model files (.pkl, .keras)
 ├── output/                  # Auto-generated: YYYY-MM-DD_HH-MM-SS/
 │   └── <timestamp>/
 │       ├── confusion_matrix_*.png
@@ -63,7 +87,6 @@ CreditCard3/
 │       ├── feature_importance.png
 │       ├── score_distributions.png
 │       └── metrics.json
-├── models/                  # Saved model files
 ├── requirements.txt
 ├── docker-compose.yml
 └── README.md
@@ -71,42 +94,98 @@ CreditCard3/
 
 ---
 
-## 🎯 ML Models
+## ML Models
 
-| Model | Type | Strength |
-|-------|------|----------|
-| **Isolation Forest** | Unsupervised | Catches novel anomalies without labels |
-| **Autoencoder** | Deep Learning | Learns normal patterns via reconstruction error |
-| **XGBoost** | Supervised | Best precision with labeled data + SMOTE |
-| **Ensemble** | Weighted Voting | Combines all three for robust predictions |
+| Model              | Type            | Strength                                            |
+|---------------------|-----------------|-----------------------------------------------------|
+| Isolation Forest    | Unsupervised    | Detects novel anomalies without requiring labels     |
+| Autoencoder         | Deep Learning   | Learns normal transaction patterns via reconstruction error |
+| XGBoost             | Supervised      | Highest precision with labeled data and SMOTE balancing |
+| Ensemble            | Weighted Voting | Combines all three models for robust predictions     |
 
----
-
-## 🔌 API Endpoints
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/api/train` | Train all three models |
-| POST | `/api/predict` | Upload CSV → get predictions |
-| GET | `/api/model-stats` | Current model metrics |
-| POST | `/api/retrain` | Incremental learning with feedback |
-| GET | `/api/feature-importance` | SHAP feature importance |
-| GET | `/api/transactions` | Paginated transaction history |
-| POST | `/api/feedback` | Submit fraud/legit labels |
-| POST | `/api/generate-samples` | Generate demo transactions |
-| GET | `/api/alerts` | Fraud alerts |
-| GET | `/api/export/csv` | Download predictions CSV |
-| WS | `/ws/training` | Real-time training progress |
+The ensemble uses weighted voting (Isolation Forest: 25%, Autoencoder: 25%, XGBoost: 50%) and applies per-model thresholds optimized by maximizing the F1 score on the precision-recall curve.
 
 ---
 
+## Usage Guide
 
-## 🎨 Features
+### Step 1: Train Models
 
-- **Dark Fintech Theme**: Navy/teal color scheme with glassmorphic cards
-- **Professor Mode**: Hide technical details, show business value
-- **SHAP Explainability**: Human-readable reasons why transactions are flagged
-- **Drift Detection**: KS-test alerts when data distribution changes
-- **Active Learning**: Identifies uncertain transactions for manual review
-- **Auto-generated Output**: Each prediction creates timestamped folder with plots + metrics.json
-- **Export**: Download predictions as CSV
+Navigate to the **Dashboard** page and click **Train Models**. This trains all three models on the `creditcard.csv` dataset. Training progress is displayed in real time via WebSocket.
+
+### Step 2: Upload Data for Prediction
+
+Go to the **Detection** page and upload a CSV file containing transaction data. The system will return fraud predictions with ensemble scores, individual model scores, and SHAP-based explanations for each transaction.
+
+### Step 3: Review Transactions
+
+Open the **Transaction Explorer** to browse predicted transactions. Each row displays the transaction ID, ensemble fraud score, predicted status, and a feedback column.
+
+### Step 4: Submit Feedback
+
+For each transaction in the Explorer, click the **Fraud** or **Legit** button in the Feedback column to label it with the correct classification. A badge will confirm your label. You can label as many transactions as needed; the more feedback you provide, the better the retraining results.
+
+### Step 5: Retrain with Feedback (Adaptive Learning)
+
+Go to the **Adaptive Learning** page and click **Retrain with Feedback**. The system will use all labeled transactions to perform incremental retraining of the XGBoost model. After retraining, the page displays a learning progress chart and a history of all retraining cycles with F1 score improvements.
+
+---
+
+## Adaptive Learning
+
+The adaptive learning loop allows the system to improve over time based on human expertise:
+
+```
+Upload CSV           Review              Label              Retrain
+(Detection) ──────>  Transactions ─────> Transactions ────> with Feedback
+                     (Explorer)          (Fraud/Legit)      (Learning Page)
+                                                                  │
+                                                                  v
+                                                           XGBoost does
+                                                           incremental
+                                                           retraining
+                                                                  │
+                                                                  v
+                                                           Metrics compared
+                                                           (before vs after)
+```
+
+**How it works internally:**
+
+1. When you click Fraud or Legit on a transaction, the frontend calls `POST /api/feedback` which updates the `feedback_label` column in the predictions table.
+2. When you click Retrain with Feedback, the backend fetches all predictions that have a non-null `feedback_label`, extracts their feature vectors, and passes them to `XGBoostModel.incremental_train()`.
+3. XGBoost performs incremental training by continuing from its existing booster with the new feedback samples.
+4. The system records F1 score before and after retraining in the training history table, allowing you to track model improvement over successive retraining cycles.
+
+---
+
+## API Reference
+
+| Method | Endpoint                     | Description                          |
+|--------|------------------------------|--------------------------------------|
+| POST   | `/api/train`                 | Train all three models               |
+| POST   | `/api/predict`               | Upload CSV and get predictions       |
+| GET    | `/api/model-stats`           | Current model performance metrics    |
+| POST   | `/api/feedback`              | Submit fraud/legit labels            |
+| POST   | `/api/retrain`               | Incremental learning with feedback   |
+| GET    | `/api/feature-importance`    | SHAP feature importance values       |
+| GET    | `/api/transactions`          | Paginated transaction history        |
+| POST   | `/api/generate-samples`      | Generate synthetic demo transactions |
+| GET    | `/api/alerts`                | Fraud alerts                         |
+| GET    | `/api/export/csv`            | Download predictions as CSV          |
+| WS     | `/ws/training`               | Real-time training progress          |
+
+---
+
+## Features
+
+- **Hybrid Ensemble Detection**: Three complementary models combined via weighted voting for robust fraud identification.
+- **SHAP Explainability**: Human-readable explanations for why each transaction was flagged, powered by SHAP TreeExplainer.
+- **Adaptive Learning Loop**: Submit feedback on transactions and retrain the model to improve accuracy over time.
+- **Drift Detection**: KS-test based monitoring that alerts when incoming data distribution shifts from training data.
+- **Active Learning**: Identifies the most uncertain predictions for priority manual review.
+- **Dark Fintech Dashboard**: Navy and teal color scheme with glassmorphic cards and smooth animations.
+- **Professor Mode**: Toggle to hide technical details and show only business-level summaries.
+- **Auto-generated Output**: Each prediction run creates a timestamped folder containing confusion matrices, ROC curves, precision-recall curves, feature importance charts, score distributions, and a metrics.json file.
+- **Real-time Training Progress**: WebSocket connection streams training progress updates to the dashboard.
+- **CSV Export**: Download all prediction results as a CSV file.

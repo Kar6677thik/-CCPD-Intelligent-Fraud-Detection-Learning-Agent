@@ -29,6 +29,23 @@ from backend.database import (
 from backend.ml_pipeline import FraudDetectionPipeline
 from backend.output_manager import generate_all_outputs
 
+# ─── Helper Functions ────────────────────────────────────────
+def convert_numpy_types(obj):
+    """Convert numpy types to native Python types for JSON serialization."""
+    if isinstance(obj, np.bool_):
+        return bool(obj)
+    elif isinstance(obj, np.integer):
+        return int(obj)
+    elif isinstance(obj, np.floating):
+        return float(obj)
+    elif isinstance(obj, np.ndarray):
+        return obj.tolist()
+    elif isinstance(obj, dict):
+        return {k: convert_numpy_types(v) for k, v in obj.items()}
+    elif isinstance(obj, (list, tuple)):
+        return [convert_numpy_types(item) for item in obj]
+    return obj
+
 # ─── Global State ─────────────────────────────────────────────
 pipeline = FraudDetectionPipeline()
 training_in_progress = False
@@ -117,7 +134,7 @@ async def dashboard():
     stats = get_dashboard_stats()
     stats["models_trained"] = pipeline.is_trained
     stats["training_in_progress"] = training_in_progress
-    return stats
+    return convert_numpy_types(stats)
 
 # ─── Model Stats ─────────────────────────────────────────────
 @app.get("/api/model-stats")
@@ -126,7 +143,7 @@ async def model_stats():
         return {"error": "Models not trained yet", "models_trained": False}
     metrics = pipeline.get_all_metrics()
     metrics["models_trained"] = True
-    return metrics
+    return convert_numpy_types(metrics)
 
 # ─── Training ────────────────────────────────────────────────
 @app.post("/api/train")
@@ -184,12 +201,12 @@ async def train_models(dataset_path: Optional[str] = None):
 
         await broadcast_progress("system", "Training complete! [OK]", 1.0)
 
-        return {
+        return convert_numpy_types({
             "status": "success",
             "results": results,
             "output_folder": output_folder,
             "generated_files": [os.path.basename(f) for f in files]
-        }
+        })
 
     except Exception as e:
         await broadcast_progress("system", f"Training failed: {str(e)}", -1)
@@ -304,13 +321,13 @@ async def predict(file: UploadFile = File(...)):
             "metrics": metrics
         }
 
-        return {
+        return convert_numpy_types({
             "summary": summary,
             "transactions": transactions[:200],  # Limit response size
             "shap_global": shap_results.get("global_importance", {}),
             "drift": drift,
             "uncertain_indices": uncertain_indices.tolist()
-        }
+        })
 
     except Exception as e:
         traceback.print_exc()
@@ -363,7 +380,7 @@ async def transactions(
 async def feature_importance():
     if not pipeline.is_trained:
         raise HTTPException(400, "Models not trained")
-    return pipeline.get_feature_importance()
+    return convert_numpy_types(pipeline.get_feature_importance())
 
 # ─── Feedback & Retrain ─────────────────────────────────────
 @app.post("/api/feedback")
@@ -422,12 +439,12 @@ async def retrain_with_feedback():
 
         await broadcast_progress("system", "Retraining complete! [OK]", 1.0)
 
-        return {
+        return convert_numpy_types({
             "status": "success",
             "feedback_samples": len(feedback_data),
             "metrics_before": metrics_before,
             "metrics_after": metrics_after,
-        }
+        })
     except Exception as e:
         raise HTTPException(500, str(e))
     finally:

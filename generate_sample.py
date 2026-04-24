@@ -1,50 +1,70 @@
+"""
+Generate a sample dataset by stratified sampling from the real creditcard.csv.
+Falls back to synthetic generation if the real dataset is unavailable.
+"""
 import numpy as np
 import pandas as pd
 import os
 
-# Set seed for reproducibility
-np.random.seed(42)
-
-# Generate parameters
+# Parameters
 n_samples = 1000
 fraud_ratio = 0.05
 n_fraud = int(n_samples * fraud_ratio)
 n_legit = n_samples - n_fraud
+seed = 42
 
-print(f"Generating {n_samples} samples ({n_fraud} fraud, {n_legit} legitimate)...")
+base_dir = os.path.dirname(__file__)
+real_csv = os.path.join(base_dir, "creditcard.csv")
+output_path = os.path.join(base_dir, "sample_creditcard.csv")
 
-# Feature names (V1 to V28)
-feature_names = [f"V{i}" for i in range(1, 29)]
+if os.path.exists(real_csv):
+    print(f"Found real dataset: {real_csv}")
+    print(f"Stratified sampling {n_legit} legit + {n_fraud} fraud...")
 
-# Generate legitimate transactions (normal distribution)
-legit_features = np.random.randn(n_legit, 28) * 0.5
-legit_time = np.random.randint(0, 100000, n_legit)
-legit_amount = np.abs(np.random.exponential(50, n_legit))
-legit_class = np.zeros(n_legit)
+    df_full = pd.read_csv(real_csv)
+    df_legit = df_full[df_full["Class"] == 0]
+    df_fraud = df_full[df_full["Class"] == 1]
 
-# Generate fraudulent transactions (more extreme values)
-fraud_features = np.random.randn(n_fraud, 28) * 2.5
-fraud_time = np.random.randint(0, 100000, n_fraud)
-fraud_amount = np.abs(np.random.exponential(500, n_fraud))
-fraud_class = np.ones(n_fraud)
+    # Sample with replacement if not enough fraud rows
+    sampled_legit = df_legit.sample(n=n_legit, random_state=seed, replace=len(df_legit) < n_legit)
+    sampled_fraud = df_fraud.sample(n=n_fraud, random_state=seed, replace=len(df_fraud) < n_fraud)
 
-# Combine datasets
-features = np.vstack([legit_features, fraud_features])
-times = np.concatenate([legit_time, fraud_time])
-amounts = np.concatenate([legit_amount, fraud_amount])
-classes = np.concatenate([legit_class, fraud_class])
+    df = pd.concat([sampled_legit, sampled_fraud], ignore_index=True)
+    df = df.sample(frac=1, random_state=seed).reset_index(drop=True)
 
-# Create DataFrame
-df = pd.DataFrame(features, columns=feature_names)
-df.insert(0, "Time", times)
-df["Amount"] = amounts
-df["Class"] = classes
+    df.to_csv(output_path, index=False)
+    print(f"[OK] Stratified sample saved to: {output_path}")
+    print(f"     {len(df)} rows, {int(df['Class'].sum())} fraud ({df['Class'].mean():.2%})")
 
-# Shuffle dataset
-df = df.sample(frac=1, random_state=42).reset_index(drop=True)
+else:
+    print(f"[WARN] Real dataset not found at {real_csv}")
+    print("Falling back to synthetic generation...")
 
-# Save to CSV
-output_path = os.path.join(os.path.dirname(__file__), "sample_creditcard.csv")
-df.to_csv(output_path, index=False)
+    np.random.seed(seed)
+    feature_names = [f"V{i}" for i in range(1, 29)]
 
-print(f"[OK] Generated sample dataset saved to: {output_path}")
+    legit_features = np.random.randn(n_legit, 28) * 0.5
+    legit_time = np.random.randint(0, 100000, n_legit)
+    legit_amount = np.abs(np.random.exponential(50, n_legit))
+    legit_class = np.zeros(n_legit)
+
+    fraud_features = np.random.randn(n_fraud, 28) * 2.5
+    fraud_time = np.random.randint(0, 100000, n_fraud)
+    fraud_amount = np.abs(np.random.exponential(500, n_fraud))
+    fraud_class = np.ones(n_fraud)
+
+    features = np.vstack([legit_features, fraud_features])
+    times = np.concatenate([legit_time, fraud_time])
+    amounts = np.concatenate([legit_amount, fraud_amount])
+    classes = np.concatenate([legit_class, fraud_class])
+
+    df = pd.DataFrame(features, columns=feature_names)
+    df.insert(0, "Time", times)
+    df["Amount"] = amounts
+    df["Class"] = classes
+
+    df = df.sample(frac=1, random_state=seed).reset_index(drop=True)
+    df.to_csv(output_path, index=False)
+
+    print(f"[OK] Synthetic sample saved to: {output_path}")
+    print(f"     {len(df)} rows, {int(df['Class'].sum())} fraud")

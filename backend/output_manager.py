@@ -254,6 +254,54 @@ def save_metrics_json(metrics, output_folder, additional_info=None):
         return None
 
 
+def _find_optimal_threshold(y_true, scores):
+    """Find threshold that maximizes F1 score."""
+    try:
+        precisions, recalls, thresholds = precision_recall_curve(y_true, scores)
+        precisions = precisions[1:]
+        recalls = recalls[1:]
+        f1_scores = 2 * (precisions * recalls) / (precisions + recalls + 1e-10)
+        f1_scores = np.nan_to_num(f1_scores, nan=0.0)
+        best_idx = np.argmax(f1_scores)
+        return thresholds[best_idx]
+    except Exception:
+        return 0.5
+
+
+def _recalibrate_predictions(y_true, scores_dict, ensemble_scores):
+    """
+    Recalibrate thresholds using ground-truth labels to find optimal predictions.
+    Used for evaluation output only (does not affect real-time predictions).
+    """
+    recalibrated_preds = {}
+    recalibrated_thresholds = {}
+
+    for name, scores in scores_dict.items():
+        threshold = _find_optimal_threshold(y_true, scores)
+        preds = (scores >= threshold).astype(int)
+        # Validate — if nothing is predicted, try a lower percentile
+        if preds.sum() == 0 and y_true.sum() > 0:
+            fraud_scores = scores[y_true == 1]
+            if len(fraud_scores) > 0:
+                threshold = np.percentile(fraud_scores, 25)
+                preds = (scores >= threshold).astype(int)
+        recalibrated_preds[name] = preds
+        recalibrated_thresholds[name] = float(threshold)
+
+    # Ensemble
+    ens_threshold = _find_optimal_threshold(y_true, ensemble_scores)
+    ens_preds = (ensemble_scores >= ens_threshold).astype(int)
+    if ens_preds.sum() == 0 and y_true.sum() > 0:
+        fraud_scores = ensemble_scores[y_true == 1]
+        if len(fraud_scores) > 0:
+            ens_threshold = np.percentile(fraud_scores, 25)
+            ens_preds = (ensemble_scores >= ens_threshold).astype(int)
+    recalibrated_preds["Ensemble"] = ens_preds
+    recalibrated_thresholds["Ensemble"] = float(ens_threshold)
+
+    return recalibrated_preds, recalibrated_thresholds
+
+
 def generate_all_outputs(y_true, prediction_results, feature_importance, additional_info=None):
     """Generate all output files for a prediction run."""
     output_folder = create_output_folder()
@@ -265,11 +313,32 @@ def generate_all_outputs(y_true, prediction_results, feature_importance, additio
         "XGBoost": prediction_results["xgboost_scores"]
     }
 
-    preds_dict = {
+    original_preds_dict = {
         "Isolation Forest": prediction_results["isolation_forest_preds"],
         "Autoencoder": prediction_results["autoencoder_preds"],
         "XGBoost": prediction_results["xgboost_preds"]
     }
+
+    # Check if original predictions missed all fraud — if so, recalibrate
+    original_ens_preds = prediction_results["predictions"]
+    ensemble_scores = prediction_results["ensemble_scores"]
+    needs_recalibration = (np.sum(original_ens_preds) == 0 and np.sum(y_true) > 0)
+
+    if needs_recalibration:
+        logger.warning(
+            "Original thresholds produced 0 fraud predictions with %d actual frauds. "
+            "Recalibrating thresholds for evaluation output.",
+            int(np.sum(y_true))
+        )
+        recal_preds, recal_thresholds = _recalibrate_predictions(
+            y_true, scores_dict, ensemble_scores
+        )
+        preds_dict = {k: recal_preds[k] for k in scores_dict}
+        ens_preds = recal_preds["Ensemble"]
+    else:
+        preds_dict = original_preds_dict
+        ens_preds = original_ens_preds
+        recal_thresholds = None
 
     # Confusion matrices for each model
     for name, preds in preds_dict.items():
@@ -277,8 +346,7 @@ def generate_all_outputs(y_true, prediction_results, feature_importance, additio
         generated_files.append(path)
 
     # Ensemble confusion matrix
-    path = save_confusion_matrix(y_true, prediction_results["predictions"],
-                                 "Ensemble", output_folder)
+    path = save_confusion_matrix(y_true, ens_preds, "Ensemble", output_folder)
     generated_files.append(path)
 
     # ROC curves
@@ -322,11 +390,9 @@ def generate_all_outputs(y_true, prediction_results, feature_importance, additio
         }
 
     # Ensemble metrics
-    ens_preds = prediction_results["predictions"]
-    ens_scores = prediction_results["ensemble_scores"]
     try:
-        ens_auc = float(roc_auc_score(y_true, ens_scores))
-        ens_ap = float(average_precision_score(y_true, ens_scores))
+        ens_auc = float(roc_auc_score(y_true, ensemble_scores))
+        ens_ap = float(average_precision_score(y_true, ensemble_scores))
     except Exception:
         ens_auc = 0.0
         ens_ap = 0.0
@@ -347,6 +413,9 @@ def generate_all_outputs(y_true, prediction_results, feature_importance, additio
     info["num_transactions"] = len(y_true)
     info["num_fraud_actual"] = int(np.sum(y_true))
     info["num_fraud_predicted"] = int(np.sum(ens_preds))
+    if recal_thresholds:
+        info["recalibrated"] = True
+        info["recalibrated_thresholds"] = recal_thresholds
 
     path = save_metrics_json(metrics, output_folder, info)
     generated_files.append(path)

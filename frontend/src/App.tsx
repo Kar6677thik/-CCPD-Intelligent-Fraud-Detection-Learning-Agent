@@ -684,6 +684,9 @@ function ExplorerPage() {
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [fraudOnly, setFraudOnly] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [feedbackMap, setFeedbackMap] = useState<Record<string, number>>({});
+  const [feedbackSaving, setFeedbackSaving] = useState<string | null>(null);
+  const [feedbackToast, setFeedbackToast] = useState("");
 
   // Debounce search input
   useEffect(() => {
@@ -702,6 +705,14 @@ function ExplorerPage() {
       });
       setTxns(res.items || []);
       setTotal(res.total || 0);
+      // Populate feedbackMap from existing labels
+      const existing: Record<string, number> = {};
+      for (const t of res.items || []) {
+        if (t.feedback_label !== null && t.feedback_label !== undefined) {
+          existing[t.transaction_id] = t.feedback_label;
+        }
+      }
+      setFeedbackMap((prev) => ({ ...prev, ...existing }));
     } catch {
       /* ignore */
     }
@@ -712,10 +723,34 @@ function ExplorerPage() {
     load();
   }, [load]);
 
+  const handleFeedback = async (transactionId: string, label: number) => {
+    setFeedbackSaving(transactionId);
+    try {
+      await api.submitFeedback([transactionId], [label]);
+      setFeedbackMap((prev) => ({ ...prev, [transactionId]: label }));
+      const labelName = label === 1 ? "Fraud" : "Legit";
+      setFeedbackToast(`Labeled ${transactionId} as ${labelName}`);
+      setTimeout(() => setFeedbackToast(""), 2500);
+    } catch {
+      setFeedbackToast("Failed to submit feedback");
+      setTimeout(() => setFeedbackToast(""), 3000);
+    }
+    setFeedbackSaving(null);
+  };
+
+  const feedbackCount = Object.keys(feedbackMap).length;
+
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Transaction Explorer</h1>
+        <div className="flex items-center gap-4">
+          <h1 className="text-2xl font-bold">Transaction Explorer</h1>
+          {feedbackCount > 0 && (
+            <span className="px-2.5 py-1 rounded-lg text-xs font-medium bg-teal-400/15 text-teal-400 border border-teal-400/20">
+              {feedbackCount} labeled
+            </span>
+          )}
+        </div>
         <button
           className="btn-secondary flex items-center gap-2"
           onClick={() => api.exportCSV()}
@@ -723,6 +758,16 @@ function ExplorerPage() {
           <Download size={16} /> Export CSV
         </button>
       </div>
+      {feedbackToast && (
+        <motion.div
+          className="glass-card p-3 text-sm text-teal-400 flex items-center gap-2"
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0 }}
+        >
+          <CheckCircle size={14} /> {feedbackToast}
+        </motion.div>
+      )}
       <div className="flex gap-3">
         <div className="relative flex-1">
           <Search
@@ -778,46 +823,76 @@ function ExplorerPage() {
                   </td>
                 </tr>
               ) : (
-                txns.map((t) => (
-                  <tr
-                    key={t.transaction_id}
-                    className="table-row border-b border-white/5"
-                  >
-                    <td className="py-3 px-4 font-mono text-xs">
-                      {t.transaction_id}
-                    </td>
-                    <td className="py-3 px-4 text-gray-400 text-xs">
-                      {t.timestamp}
-                    </td>
-                    <td
-                      className="py-3 px-4 text-right font-bold"
-                      style={{
-                        color:
-                          t.ensemble_score > 0.7
-                            ? COLORS.danger
-                            : t.ensemble_score > 0.3
-                              ? COLORS.warning
-                              : COLORS.success,
-                      }}
+                txns.map((t) => {
+                  const currentLabel = feedbackMap[t.transaction_id] ?? t.feedback_label;
+                  const isSaving = feedbackSaving === t.transaction_id;
+                  return (
+                    <tr
+                      key={t.transaction_id}
+                      className="table-row border-b border-white/5"
                     >
-                      {t.ensemble_score.toFixed(4)}
-                    </td>
-                    <td className="py-3 px-4 text-center">
-                      {t.is_fraud ? (
-                        <span className="badge-fraud">FRAUD</span>
-                      ) : (
-                        <span className="badge-legit">LEGIT</span>
-                      )}
-                    </td>
-                    <td className="py-3 px-4 text-center text-xs text-gray-500">
-                      {t.feedback_label === null
-                        ? "—"
-                        : t.feedback_label === 1
-                          ? "✓ Fraud"
-                          : "✓ Legit"}
-                    </td>
-                  </tr>
-                ))
+                      <td className="py-3 px-4 font-mono text-xs">
+                        {t.transaction_id}
+                      </td>
+                      <td className="py-3 px-4 text-gray-400 text-xs">
+                        {t.timestamp}
+                      </td>
+                      <td
+                        className="py-3 px-4 text-right font-bold"
+                        style={{
+                          color:
+                            t.ensemble_score > 0.7
+                              ? COLORS.danger
+                              : t.ensemble_score > 0.3
+                                ? COLORS.warning
+                                : COLORS.success,
+                        }}
+                      >
+                        {t.ensemble_score.toFixed(4)}
+                      </td>
+                      <td className="py-3 px-4 text-center">
+                        {t.is_fraud ? (
+                          <span className="badge-fraud">FRAUD</span>
+                        ) : (
+                          <span className="badge-legit">LEGIT</span>
+                        )}
+                      </td>
+                      <td className="py-3 px-4 text-center">
+                        {currentLabel !== null && currentLabel !== undefined ? (
+                          <span
+                            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium ${
+                              currentLabel === 1
+                                ? "bg-red-500/15 text-red-400 border border-red-500/20"
+                                : "bg-green-500/15 text-green-400 border border-green-500/20"
+                            }`}
+                          >
+                            <CheckCircle size={10} />
+                            {currentLabel === 1 ? "Fraud" : "Legit"}
+                          </span>
+                        ) : isSaving ? (
+                          <RefreshCw size={12} className="animate-spin mx-auto text-gray-400" />
+                        ) : (
+                          <div className="flex items-center justify-center gap-1">
+                            <button
+                              className="px-2 py-0.5 rounded text-[10px] font-semibold bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/25 transition-colors"
+                              onClick={() => handleFeedback(t.transaction_id, 1)}
+                              title="Label as Fraud"
+                            >
+                              Fraud
+                            </button>
+                            <button
+                              className="px-2 py-0.5 rounded text-[10px] font-semibold bg-green-500/10 text-green-400 border border-green-500/20 hover:bg-green-500/25 transition-colors"
+                              onClick={() => handleFeedback(t.transaction_id, 0)}
+                              title="Label as Legit"
+                            >
+                              Legit
+                            </button>
+                          </div>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>

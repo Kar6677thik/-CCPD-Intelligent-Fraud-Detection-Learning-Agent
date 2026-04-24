@@ -71,10 +71,25 @@ class IsolationForestModel:
         if y is not None:
             from sklearn.metrics import precision_recall_curve as prc
             precisions, recalls, thresholds = prc(y, normalized)
+            
+            # FIX: The first element of precisions/recalls corresponds to threshold=-inf
+            # Remove FIRST element [0] not last element to align with thresholds array
+            precisions = precisions[1:]
+            recalls = recalls[1:]
+            
             f1_scores = 2 * (precisions * recalls) / (precisions + recalls + 1e-10)
+            f1_scores = np.nan_to_num(f1_scores, nan=0.0)  # Replace NaN with 0
             best_idx = np.argmax(f1_scores)
-            self.threshold = thresholds[best_idx] if best_idx < len(thresholds) else 0.5
+            self.threshold = thresholds[best_idx]  # Now safe to index
+            
+            # Validate that threshold makes sense
             predictions = (normalized >= self.threshold).astype(int)
+            if predictions.sum() == 0 and y.sum() > 0:
+                # Threshold too high - use percentile of actual anomalies instead
+                anomaly_scores = normalized[y == 1]
+                self.threshold = np.percentile(anomaly_scores, 25)
+                predictions = (normalized >= self.threshold).astype(int)
+            
             self.metrics = self._compute_metrics(y, predictions, normalized)
 
         self.is_trained = True
@@ -235,10 +250,23 @@ class AutoencoderModel:
         if y is not None:
             from sklearn.metrics import precision_recall_curve as prc
             precisions, recalls, thresholds = prc(y, normalized)
+            
+            # FIX: Handle the off-by-one error
+            precisions = precisions[1:]
+            recalls = recalls[1:]
+            
             f1_scores = 2 * (precisions * recalls) / (precisions + recalls + 1e-10)
+            f1_scores = np.nan_to_num(f1_scores, nan=0.0)
             best_idx = np.argmax(f1_scores)
-            self.threshold = thresholds[best_idx] if best_idx < len(thresholds) else 0.5
+            self.threshold = thresholds[best_idx]
+            
+            # Validate and fallback if needed
             predictions = (normalized >= self.threshold).astype(int)
+            if predictions.sum() == 0 and y.sum() > 0:
+                anomaly_scores = normalized[y == 1]
+                self.threshold = np.percentile(anomaly_scores, 25)
+                predictions = (normalized >= self.threshold).astype(int)
+            
             self.metrics = self._compute_metrics(y, predictions, normalized)
 
         self.is_trained = True
@@ -357,10 +385,23 @@ class XGBoostModel:
 
         from sklearn.metrics import precision_recall_curve as prc
         precisions, recalls, thresholds = prc(y, y_proba)
+        
+        # FIX: Handle the off-by-one error
+        precisions = precisions[1:]
+        recalls = recalls[1:]
+        
         f1_scores = 2 * (precisions * recalls) / (precisions + recalls + 1e-10)
+        f1_scores = np.nan_to_num(f1_scores, nan=0.0)
         best_idx = np.argmax(f1_scores)
-        self.threshold = thresholds[best_idx] if best_idx < len(thresholds) else 0.5
+        self.threshold = thresholds[best_idx]
+        
+        # Validate and fallback if needed
         predictions = (y_proba >= self.threshold).astype(int)
+        if predictions.sum() == 0 and y.sum() > 0:
+            anomaly_scores = y_proba[y == 1]
+            self.threshold = np.percentile(anomaly_scores, 25)
+            predictions = (y_proba >= self.threshold).astype(int)
+        
         self.metrics = self._compute_metrics(y, predictions, y_proba)
 
         self.is_trained = True
@@ -488,7 +529,7 @@ class DriftDetector:
         for i in range(min(X_new.shape[1], self._reference_data.shape[1])):
             stat, p_value = stats.ks_2samp(self._reference_data[:, i], X_new[:, i])
             feature_name = self.feature_names[i] if i < len(self.feature_names) else f"feature_{i}"
-            is_drifted = p_value < 0.01
+            is_drifted = bool(p_value < 0.01)  # Convert numpy bool to Python bool
             if is_drifted:
                 drift_count += 1
             results["features"][feature_name] = {
@@ -497,10 +538,10 @@ class DriftDetector:
                 "is_drifted": is_drifted
             }
 
-        results["drift_score"] = drift_count / X_new.shape[1]
-        results["overall_drift"] = results["drift_score"] > 0.3
-        results["num_drifted_features"] = drift_count
-        results["total_features"] = X_new.shape[1]
+        results["drift_score"] = float(drift_count / X_new.shape[1])
+        results["overall_drift"] = bool(results["drift_score"] > 0.3)  # Convert to Python bool
+        results["num_drifted_features"] = int(drift_count)
+        results["total_features"] = int(X_new.shape[1])
         return results
 
 
@@ -686,6 +727,39 @@ class FraudDetectionPipeline:
             }
         except Exception as e:
             return {"error": str(e)}
+
+    def check_distribution_compatibility(self, X: np.ndarray) -> Dict:
+        """Check if prediction data distribution is compatible with training data."""
+        if self.drift_detector.reference_stats is None:
+            return {"compatible": True, "message": "No reference stats available"}
+
+        ref_mean = self.drift_detector.reference_stats["mean"]
+        ref_std = self.drift_detector.reference_stats["std"]
+        new_mean = np.mean(X, axis=0)
+        new_std = np.std(X, axis=0)
+
+        n_features = min(len(ref_mean), X.shape[1])
+        mean_diffs = np.abs(new_mean[:n_features] - ref_mean[:n_features])
+        std_ratios = (new_std[:n_features] + 1e-10) / (ref_std[:n_features] + 1e-10)
+
+        # Flag if >50% of features have mean diff > 2*ref_std or std ratio outside [0.2, 5]
+        mean_outliers = np.sum(mean_diffs > 2 * (ref_std[:n_features] + 1e-10))
+        std_outliers = np.sum((std_ratios < 0.2) | (std_ratios > 5.0))
+        pct_mean_outliers = mean_outliers / n_features
+        pct_std_outliers = std_outliers / n_features
+
+        is_ood = pct_mean_outliers > 0.5 or pct_std_outliers > 0.5
+        return {
+            "compatible": not is_ood,
+            "is_out_of_distribution": bool(is_ood),
+            "mean_outlier_pct": float(pct_mean_outliers),
+            "std_outlier_pct": float(pct_std_outliers),
+            "message": (
+                "WARNING: Prediction data appears out-of-distribution compared to training data. "
+                "Fraud detection accuracy may be degraded. Consider retraining on similar data."
+                if is_ood else "Data distribution is compatible with training data."
+            )
+        }
 
     def load_models(self) -> bool:
         loaded = []
